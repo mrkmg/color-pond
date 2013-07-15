@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html>
+<head>
+
+    <link href='http://fonts.googleapis.com/css?family=Source+Sans+Pro:400,900' rel='stylesheet' type='text/css'>
+    <link rel="stylesheet" type="text/css" href="css/index.css">
+
+    <script src="http://code.jquery.com/jquery-1.10.1.min.js"></script>
+    <script src="js/randomseed.js"></script>
+    <script src="js/pond.js"></script>
+    <script src="js/draw.js"></script>
+    <script src="js/helpers.js"></script>
+
+    <title>ColorPond</title>
+</head>
+<body>
+    <div style="" id="fps"></div>
+    <h2>ColorPond</h2>
+    <div id="init">
+        Width: <input type="number" id="width" value="125"  min="1" /><br />
+        Height: <input type="number" id="height" value="125" min="1" /><br />
+        Seed: <input type="text" id="seed" />(leave blank for random)
+    </div>
+    <div id="pondHolder">
+        <canvas id="pond"></canvas>
+    </div>
+    <div id="options">
+        <button id="pauserun">Pause/Run</button>
+        <button id="singlebulk">Bulk Render</button>
+        <span class="item">Update Rate: 1/<input id="bulkrate" type="number" value="1" min="1" max="100" /></span>
+        <span class="item">Tick Wait: <input id="speed" type="number" value="10" min="10" max="5000" /></span>
+        <span class="item">Filter: <select id="filter">
+          <option value="none">None</option>
+          <option value="sharpen" selected>Sharpen</option>
+          <option value="blur">Blur</option>
+          <option value="smooth">Neon Smooth</option>
+        </select></span>
+        <button id="border">Cell Wall Off</button>
+        <br />
+        <span class="item">Flow Chance: 1/<input id="flow" type="number" value="2" min="1" max="50" /></span>
+        <span class="item">Life Chance: 1/<input id="life" type="number" value="8" min="1" max="500" /></span>
+        <span class="item">Mutation Chance: 1/<input id="mutation" type="number" value="20" min="1" max="500" /></span><br />
+    <button id="doinit">Go</button>
+    </div>
+    <div id="info">
+
+    </div>
+    <script>
+    $(document).ready(function(){
+        $('#doinit').click(function(){
+            if($('#seed').val() == '') Math.seedrandom();
+            else Math.seedrandom($('#seed').val());
+            pond.width = parseInt($('#width').val());
+            pond.height = parseInt($('#height').val());
+            pond.init();
+            pond.render();
+            $('#pondHolder, #pauserun').show();
+            $('#init, #doinit').hide();
+        });
+        $('#pondHolder, #pauserun').hide();
+        var tick = 10;
+        running = false;
+        $('#pauserun').click(function(){
+            if(running){
+                clearTimeout(r);
+                running = false;
+            }
+            else{
+                r = setTimeout(function(){
+                    pond.step();
+                    r = setTimeout(arguments.callee,tick)
+                },tick);
+                running = true;
+            }
+        });
+        $('#singlebulk').click(function(){
+            pond.singleRender = !pond.singleRender;
+            if(pond.singleRender) $(this).text('Single Render');
+            else                  $(this).text('Bulk Render');
+        });
+        $('#bulkrate').change(function(ev){
+            pond.bulkOdd = parseInt($(this).val());
+        });
+        $('#speed').change(function(ev){
+            tick = parseInt($(this).val());
+        });
+        $('#flow').change(function(ev){
+            pond.flowChance = parseInt($(this).val());
+        });
+        $('#pro_life').change(function(ev){
+            pond.producerSpawnChance = parseInt($(this).val());
+        });
+        $('#con_life').change(function(ev){
+            pond.consumerSpawnChance = parseInt($(this).val());
+        });
+        $('#mutation').change(function(ev){
+            pond.mutationChance = parseInt($(this).val());
+        });
+        $('#filter').change(function(ev){
+            draw.filter = $(this).val();
+            pond.render();
+        });
+        $('#border').click(function(){
+            pond.cellWall = !pond.cellWall;
+            if(pond.cellWall) $(this).text('Cell Wall On');
+            else              $(this).text('Cell Wall Off');
+        });
+
+
+        $('#bulkrate').val(pond.bulkOdd);
+        $('#speed').val(tick);
+        $('#flow').val(pond.bulkOdd);
+        $('#mutation').val(pond.mutationChance);
+        $('#filter').val(draw.filter);
+        $('#pro_life').val(pond.producerSpawnChance);
+        $('#con_life').val(pond.consumerSpawnChance);
+
+    });
+</script>
+</body>
+</html>

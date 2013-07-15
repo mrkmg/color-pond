@@ -1,0 +1,43 @@
+body{
+    background: #333;
+}
+
+h2{
+    width:310px;
+    text-align:center;
+    font-family: 'Source Sans Pro', sans-serif;
+    font-weight: 900;
+    font-size:64px;
+    background: linear-gradient(to right, rgb(255,0,4) 0%,rgb(0,255,0) 50%,rgb(0,0,255) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin:10px auto;
+}
+
+#pondHolder{
+    text-align: center;
+}
+
+#pond{
+    margin:0;
+    background:#000;
+    border-radius: 5px;
+    border:solid 5px #666;
+}
+
+#fps{
+    position:fixed;
+    width:60px;
+    height: 20px;
+    top:0;
+    right:0;
+    color:white;
+}
+
+#info, #options{
+    text-align: center;
+}
+
+#init{
+    text-align: center;
+}
