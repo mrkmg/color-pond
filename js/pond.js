@@ -53,10 +53,9 @@ ORG_ATTR =          9;
 
 BG_COLOR = [60,60,60];
 
-//fix modulo
-Number.prototype.mod = function(n) {
-return ((this%n)+n)%n;
-}
+//Fix the shitty JS Mod and lack of clone
+Number.prototype.mod = function(n) { return ((this%n)+n)%n; }
+Array.prototype.clone = function() { return this.slice(0); };
 
 
 var TPS_filterStrength = 20;
@@ -85,6 +84,8 @@ $(document).ready(function(){
                          (1000/FPS_frameTime).toFixed(1) + " fps<br />Tick: "+global_tick;
     },1000);
 });
+
+global_tick = 0;
 
 pond = {
     //variables
@@ -129,6 +130,7 @@ pond = {
             this.resourcesNames.push(i);
         }
 
+        //fill material names
         for(var i in this.materials) if (this.materials.hasOwnProperty(i))
         {
             this.materialsNames.push(i);
@@ -166,6 +168,7 @@ pond = {
     step:function(){
         gameLoopTick();
         global_tick++;
+        this.processMap();
         this.insertRandomLife();
         this.processOrgs();
         this.flowResMats();
@@ -175,6 +178,7 @@ pond = {
         }
     },
     insertRandomLife:function(){
+        //TODO implement a threshold for life generation
         if(helpers.chance(this.producerSpawnChance)){
             var spot = Math.floor(Math.random()*this.total);
             this.map[spot] = [MAP_TYPE_ORGANISM,this.makeRandomOrganism(ORG_TYPE_PRODUCER)];
@@ -187,17 +191,12 @@ pond = {
         }
     },
     flowResMats:function(){
-        var list = [];
-        for(var i in this.map) list.push(parseInt(i));
-        list.pop();
+        var list = this.lists[MAP_TYPE_RESOURCE].join(MAP_TYPE_MATERIAL);
         list.sort(function(){ return .5 - Math.random(); });
         for(var l in list){
             var i = list[l];
-            if(!helpers.chance(this.flowChance)) continue;
-            if(this.map[i][MAP_TYPE] == MAP_TYPE_ORGANISM) continue;
             var sides = helpers.getSides(i);
             var isMatch = false;
-
             for(var s in sides){
                 var side = sides[s];
                 if(this.map[i][MAP_TYPE] == this.map[side][MAP_TYPE] &&
@@ -217,6 +216,7 @@ pond = {
         }
     },
     pushPop:function(){
+        //TODO implement a threshold or "target" number
         for(var i in this.map){
             if((this.map[i][MAP_TYPE] == MAP_TYPE_EMPTY) && helpers.chance(20))
                 this.map[i] = [MAP_TYPE_RESOURCE,this.giveRandomResource()];
@@ -224,10 +224,7 @@ pond = {
         }
     },
     processOrgs:function(){
-        var list = []
-        for(var i in this.map){
-            if(this.map[i][MAP_TYPE] == MAP_TYPE_ORGANISM) list.push(parseInt(i));
-        }
+        var list = this.lists[MAP_TYPE_ORGANISM].clone();
         list.sort(function(){ return .5 - Math.random(); });
         for(i in list){
             var oi = list[i];
@@ -250,6 +247,7 @@ pond = {
         }
     },
     orgMove:function(i){
+        //TODO IMPROVE - DONT KNOW HOW BUT NEED TO!!!!
         var o = this.map[i][MAP_ITEM];
         if(this.map[i][MAP_ITEM][ORG_TYPE] == ORG_TYPE_PRODUCER){
             return;
@@ -358,6 +356,7 @@ pond = {
 
     },
     orgInteract:function(i){
+        //TODO Implement Passive and Aggressive interactions
         // return;
         o = this.map[i][MAP_ITEM];
         sides = helpers.getSides(i);
@@ -381,6 +380,7 @@ pond = {
         }
     },
     orgShare:function(o,so){
+        //TODO Implement more sharing ( Consumers<->Consumers & Producers<->Consumers)
         if(o[ORG_TYPE] != ORG_TYPE_PRODUCER && so[ORG_TYPE] != ORG_TYPE_PRODUCER) return;
         if(so[ORG_TYPE] == ORG_TYPE_PRODUCER){
             for(var omi in this.materials[o[ORG_MAT]]){
@@ -402,6 +402,7 @@ pond = {
         }
     },
     orgProduce:function(i){
+        //TODO look over and improve
         var o = this.map[i][MAP_ITEM];
         if(o[ORG_TYPE] == ORG_TYPE_PRODUCER){
             var do_produce = true;
@@ -423,6 +424,7 @@ pond = {
         } else alert('UNKNOWN organism TYPE');
     },
     orgExcrete:function(i){
+        //TODO Look over and check this.
         var o = this.map[i][MAP_ITEM];
         var mat = this.materials[o[ORG_MAT]][MAT_RES];
 
@@ -545,7 +547,22 @@ pond = {
                 break;
         }
     },
-
+    clearListsCounts:function(){
+        this.lists = [];
+        this.currents = [];
+        for(var i=0;i<this.mapTypesCount;i++){
+            this.lists.push([]);
+            this.currents.push(0);
+        }
+    },
+    parseMap:function(){
+        this.clearListsCounts();
+        for(var i in this.map){
+            var type = this.map[i][MAP_TYPE];
+            this.lists[type].push(i);
+            this.currents[types]++;
+        }
+    },
     //generators
     giveRandomResource:function(){
         return this.resourcesNames[Math.floor(Math.random()*(this.resourcesNames.length))];
@@ -554,6 +571,7 @@ pond = {
         return this.materialsNames[Math.floor(Math.random()*(this.materialsNames.length))];
     },
     makeRandomOrganism:function(type){
+        //TODO make organisms a little more random from the get
         var o = [];
         o[ORG_ID] = this.org_id_max; this.org_id_max++;
         o[ORG_TYPE] = type;
@@ -577,8 +595,11 @@ pond = {
     },
 
     //static holders
+    mapTypesCount:4,
     total:null,
     resourcesNames:[],
     materialsNames:[],
-    map:[]
+    map:[],
+    currents:[],
+    lists:[]
 }

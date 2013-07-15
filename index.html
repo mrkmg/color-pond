@@ -16,36 +16,31 @@
 <body>
     <div style="" id="fps"></div>
     <h2>ColorPond</h2>
-    <div id="init">
-        <span class="item">Width: <input type="number" id="width" value="125"  min="1" max="9999" /></span>
-        <div class="padder"></div>
-        <span class="item">Height: <input type="number" id="height" value="125" min="1" max="9999" /></span>
-        <div class="padder"></div>
-        <span class="item">Seed: <input type="text" id="seed" />(leave blank for random)</span>
-        <div class="padder"></div>
-    </div>
     <div id="pondHolder">
-        <canvas id="pond"></canvas>
-    </div>
-    <div id="options">
-        <button id="pauserun">Pause/Run</button>
-        <button id="singlebulk">Bulk Render</button>
-        <span class="item">Update Rate: 1/<input id="bulkrate" type="number" min="1" max="100" /></span>
-        <span class="item">Tick Wait: <input id="speed" type="number" min="10" max="5000" /></span>
-        <span class="item">Filter: <select id="filter">
-          <option value="none">None</option>
-          <option value="sharpen" selected>Sharpen</option>
-          <option value="blur">Blur</option>
-          <option value="smooth">Neon Smooth</option>
-        </select></span>
-        <button id="border">Cell Wall Off</button>
-        <div class="padder"></div>
-        <span class="item">Flow Chance: 1/<input id="flow" type="number" min="1" max="50" /></span>
-        <span class="item">Producer Spawn Chance: 1/<input id="pro_life" type="number" min="1" max="500" /></span>
-        <span class="item">Consumer Spawn Chance: 1/<input id="con_life" type="number" min="1" max="500" /></span>
-        <span class="item">Mutation Chance: 1/<input id="mutation" type="number" min="1" max="500" /></span>
-        <div class="padder"></div>
-    <button id="doinit">Go</button>
+        <canvas id="pond" class="no_initial"></canvas>
+        <div id="options">
+            <div id="init" class="intial_only">
+                <span class="item">Width: <input type="number" id="width" value="125"  min="1" max="9999" /></span>
+                <span class="item">Height: <input type="number" id="height" value="125" min="1" max="9999" /></span>
+                <span class="item">Seed: <input type="text" style="width:50px;" id="seed" /><br>
+                    <span style="font-size:10px;">(leave blank for random)</span></span>
+                <button id="doinit">Go</button>
+            </div>
+            <span class="item" class="no_initial"><button id="pauserun">Pause/Run</button></span>
+            <span class="item">Update Rate: 1/<input id="bulkrate" type="number" min="1" max="100" /></span>
+            <span class="item">Tick Wait: <input id="speed" type="number" min="10" max="5000" /></span>
+            <span class="item">Filter: <select id="filter">
+              <option value="none">None</option>
+              <option value="sharpen" selected>Sharpen</option>
+              <option value="blur">Blur</option>
+              <option value="smooth">Neon Smooth</option>
+            </select></span>
+            <span class="item">Flow %: 1/<input id="flow" type="number" min="1" max="50" /></span>
+            <span class="item">P Spawn %: 1/<input id="pro_life" type="number" min="1" max="500" /></span>
+            <span class="item">C Spawn %: 1/<input id="con_life" type="number" min="1" max="500" /></span>
+            <span class="item">Mutation %: 1/<input id="mutation" type="number" min="1" max="500" /></span>
+            <span class="item">Cell Wall: <input id="cellwall" type="checkbox" /></span>
+        </div>
     </div>
     <div id="info">
 
@@ -63,10 +58,10 @@
             }
             pond.init();
             pond.render();
-            $('#pondHolder, #pauserun').show();
-            $('#init, #doinit').hide();
+            $('.no_initial').show();
+            $('.intial_only').hide();
         });
-        $('#pondHolder, #pauserun').hide();
+        $('.no_initial').hide();
         var tick = 10;
         running = false;
         $('#pauserun').click(function(){
@@ -109,10 +104,10 @@
             draw.filter = $(this).val();
             pond.render();
         });
-        $('#border').click(function(){
+        $('#cellwall').click(function(){
             pond.cellWall = !pond.cellWall;
-            if(pond.cellWall) $(this).text('Cell Wall On');
-            else              $(this).text('Cell Wall Off');
+            if(pond.cellWall) $(this).attr('checked','checked');
+            else              $(this).removeAttr('checked');
         });
 
 
@@ -124,7 +119,9 @@
         $('#pro_life').val(pond.producerSpawnChance);
         $('#con_life').val(pond.consumerSpawnChance);
         $('#singlebulk').text(pond.singleRender?'Single Render':'Bulk Render');
-        $('#border').text(pond.cellWall?'Cell Wall On':'Cell Wall Off');
+        if(pond.cellWall){
+            $('#cellwall').attr('checked','checked');
+        }
     });
 </script>
 </body>
