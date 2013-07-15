@@ -55,13 +55,12 @@ BG_COLOR = [60,60,60];
 
 //Fix the shitty JS Mod and lack of clone
 Number.prototype.mod = function(n) { return ((this%n)+n)%n; }
-Array.prototype.clone = function() { return this.slice(0); };
 
 
-var TPS_filterStrength = 20;
+var TPS_filterStrength = 5;
 var TPS_frameTime = 0, TPS_lastLoop = new Date, TPS_thisLoop;
 
-var FPS_filterStrength = 20;
+var FPS_filterStrength = 5;
 var FPS_frameTime = 0, FPS_lastLoop = new Date, FPS_thisLoop;
 
 function gameLoopTick(){
@@ -87,14 +86,18 @@ $(document).ready(function(){
 
 global_tick = 0;
 
+Colors:[]; //TODO, populate with "pretty" colors
+
 pond = {
     //variables
     cellWall:true,
     mutationChance:20,
-    flowChance:10,
+    flowChance:3,
     producerSpawnChance:20,
     consumerSpawnChance:10,
+    resouceThreshold:80,
     singleRender:false,
+    resourceSpawnChance:40,
     bulkOdd:1,
     width:5,
     height:5,
@@ -142,9 +145,9 @@ pond = {
             this.map[i] = [];
         }
 
-        //fillWithResources
+        //intialFill
         for(var i=0;i<this.total;i++){
-            if(false && helpers.chance(3)){
+            if(true){
                 this.map[i] = [MAP_TYPE_EMPTY];
             } else {
                 this.map[i] = [MAP_TYPE_RESOURCE,this.giveRandomResource()];
@@ -169,10 +172,11 @@ pond = {
         gameLoopTick();
         global_tick++;
         this.processMap();
+        this.pushPop();
+        this.processMap();
         this.insertRandomLife();
         this.processOrgs();
         this.flowResMats();
-        this.pushPop();
         if(!this.singleRender && global_tick.mod(this.bulkOdd)==0){
             this.render();
         }
@@ -191,9 +195,10 @@ pond = {
         }
     },
     flowResMats:function(){
-        var list = this.lists[MAP_TYPE_RESOURCE].join(MAP_TYPE_MATERIAL);
+        var list = this.lists[MAP_TYPE_RESOURCE].concat(MAP_TYPE_MATERIAL);
         list.sort(function(){ return .5 - Math.random(); });
         for(var l in list){
+            if(!helpers.chance(this.flowChance)) continue;
             var i = list[l];
             var sides = helpers.getSides(i);
             var isMatch = false;
@@ -216,15 +221,19 @@ pond = {
         }
     },
     pushPop:function(){
-        //TODO implement a threshold or "target" number
-        for(var i in this.map){
-            if((this.map[i][MAP_TYPE] == MAP_TYPE_EMPTY) && helpers.chance(20))
-                this.map[i] = [MAP_TYPE_RESOURCE,this.giveRandomResource()];
-                if(this.singleRender) this.renderOne(i);
+        
+        if((this.currents[MAP_TYPE_RESOURCE]/this.total)*100 > this.resouceThreshold) return;
+
+        var list = this.lists[MAP_TYPE_EMPTY].slice(0);
+        list.sort(function(){ return 0.5 - Math.random(); });
+        for(var i in list) if(helpers.chance(this.resourceSpawnChance)){
+            var spot = list[i];
+            this.map[spot] = [MAP_TYPE_RESOURCE,this.giveRandomResource()];
+            if(this.singleRender) this.renderOne(spot);
         }
     },
     processOrgs:function(){
-        var list = this.lists[MAP_TYPE_ORGANISM].clone();
+        var list = this.lists[MAP_TYPE_ORGANISM].slice(0);
         list.sort(function(){ return .5 - Math.random(); });
         for(i in list){
             var oi = list[i];
@@ -432,7 +441,7 @@ pond = {
             var sides = helpers.getSides(i);
             sides.sort(function(){ return .5 - Math.random(); });
             for(var s in sides){
-                if(this.map[sides[s]] == MAP_TYPE_EMPTY){
+                if(this.map[sides[s]][MAP_TYPE] == MAP_TYPE_EMPTY){
                     this.map[sides[s]] = [MAP_TYPE_MATERIAL,o[ORG_MAT]];
                     if(this.singleRender) this.renderOne(sides[s]);
                     o[ORG_REFINEDSTOR]--;
@@ -441,19 +450,30 @@ pond = {
             }
         } else if(o[ORG_TYPE] == ORG_TYPE_CONSUMER){
             var sides = helpers.getSides(i);
-            sides.sort(function(){ return .5 - Math.random(); });
+            sides.sort(function(){ return 0.5 - Math.random(); });
+            var didPlace = false;
             for(var s in sides){
-                var raws = [];
-                for(var r in o[ORG_RAWSTOR]) raws.push(r);
-                var ri = 0;
-                if(this.map[sides[s]] == MAP_TYPE_EMPTY){
-                    if(ri < raws.length){
-                        o[ORG_RAWSTOR][ri]--;
-                        this.map[sides[s]] = [MAP_TYPE_RESOURCE,this.materials[o[ORG_MAT]][MAT_RES][ri]];
-                        if(this.singleRender) this.renderOne(sides[s]);
+                var side = sides[s];
+                if(this.map[side][MAP_TYPE] == MAP_TYPE_EMPTY){
+                    if(o[ORG_RAWSTOR][0] > 0) {
+                        if(o[ORG_RAWSTOR][1]){
+                            if(helpers.bool()){
+                                this.map[side] = [MAP_TYPE_RESOURCE,this.materials[o[ORG_MAT]][MAT_RES][0]];
+                                o[ORG_RAWSTOR][0]--;
+                            } else {
+                                this.map[side] = [MAP_TYPE_RESOURCE,this.materials[o[ORG_MAT]][MAT_RES][1]];
+                                o[ORG_RAWSTOR][1]--;
+                            }
+                        } else {
+                            this.map[side] = [MAP_TYPE_RESOURCE,this.materials[o[ORG_MAT]][MAT_RES][1]];
+                            o[ORG_RAWSTOR][1]--;
+                        }
+                        didPlace = true;
+                    } else if(o[ORG_RAWSTOR][1]){
+                        didPlace = true;
                     }
-                    ri++;
                 }
+                if(!didPlace) break;
             }
         }
     },
@@ -555,12 +575,12 @@ pond = {
             this.currents.push(0);
         }
     },
-    parseMap:function(){
+    processMap:function(){
         this.clearListsCounts();
         for(var i in this.map){
             var type = this.map[i][MAP_TYPE];
-            this.lists[type].push(i);
-            this.currents[types]++;
+            this.lists[type].push(parseInt(i));
+            this.currents[type]++;
         }
     },
     //generators

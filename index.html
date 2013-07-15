@@ -22,11 +22,13 @@
             <div id="init" class="intial_only">
                 <span class="item">Width: <input type="number" id="width" value="125"  min="1" max="9999" /></span>
                 <span class="item">Height: <input type="number" id="height" value="125" min="1" max="9999" /></span>
+                <span class="item">Total Area: <span id="totalarea"></span>
+                <span class="item">Best Fit? <input type="checkbox" id="bestfit" checked="checked" /></span>
                 <span class="item">Seed: <input type="text" style="width:50px;" id="seed" /><br>
                     <span style="font-size:10px;">(leave blank for random)</span></span>
                 <button id="doinit">Go</button>
             </div>
-            <span class="item" class="no_initial"><button id="pauserun">Pause/Run</button></span>
+            <span class="item no_initial"><button id="pauserun">Pause/Run</button></span>
             <span class="item">Update Rate: 1/<input id="bulkrate" type="number" min="1" max="100" /></span>
             <span class="item">Tick Wait: <input id="speed" type="number" min="10" max="5000" /></span>
             <span class="item">Filter: <select id="filter">
@@ -39,11 +41,11 @@
             <span class="item">P Spawn %: 1/<input id="pro_life" type="number" min="1" max="500" /></span>
             <span class="item">C Spawn %: 1/<input id="con_life" type="number" min="1" max="500" /></span>
             <span class="item">Mutation %: 1/<input id="mutation" type="number" min="1" max="500" /></span>
+            <span class="item">R Spawn %: 1/<input id="resourcespawn" type="number" min="1" max="500" /></span>
+            <span class="item">Goal R %: /<input id="goalresouce" type="number" min="1" max="500" /></span>
             <span class="item">Cell Wall: <input id="cellwall" type="checkbox" /></span>
+            <div id="info"></div>
         </div>
-    </div>
-    <div id="info">
-
     </div>
     <script>
     $(document).ready(function(){
@@ -58,6 +60,7 @@
             }
             pond.init();
             pond.render();
+            $('#pondHolder').width(250 + $('#pond').width());
             $('.no_initial').show();
             $('.intial_only').hide();
         });
@@ -97,6 +100,12 @@
         $('#con_life').change(function(ev){
             pond.consumerSpawnChance = parseInt($(this).val());
         });
+        $('#resourcespawn').change(function(ev){
+            pond.resourceSpawnChance = parseInt($(this).val());
+        });
+        $('#goalresouce').change(function(ev){
+            pond.resouceThreshold = parseInt($(this).val());
+        });
         $('#mutation').change(function(ev){
             pond.mutationChance = parseInt($(this).val());
         });
@@ -113,15 +122,62 @@
 
         $('#bulkrate').val(pond.bulkOdd);
         $('#speed').val(tick);
-        $('#flow').val(pond.bulkOdd);
+        $('#flow').val(pond.flowChance);
         $('#mutation').val(pond.mutationChance);
         $('#filter').val(draw.filter);
         $('#pro_life').val(pond.producerSpawnChance);
         $('#con_life').val(pond.consumerSpawnChance);
+        $('#resourcespawn').val(pond.resourceSpawnChance);
+        $('#goalresouce').val(pond.resouceThreshold);
         $('#singlebulk').text(pond.singleRender?'Single Render':'Bulk Render');
         if(pond.cellWall){
             $('#cellwall').attr('checked','checked');
         }
+
+
+        var screenX = $('html').width()-350;
+        var screenY = $('html').height()-150;
+
+        var ideal = 15625;
+        if(screenX > screenY){
+            var s1 = Math.round((screenX/screenY)*100)/100;
+            var s2 = Math.floor(ideal/s1);
+            var s3 = Math.floor(Math.sqrt(s2));
+            var dx = Math.floor(s1*s3);
+            var dy = s3;
+        } else {
+            var s1 = Math.round((screenY/screenX)*100)/100;
+            var s2 = Math.floor(ideal/s1);
+            var s3 = Math.floor(Math.sqrt(s2));
+            var dy = Math.floor(s1*s3);
+            var dx = s3;
+        }
+
+        $('#width').val(dx);
+        $('#height').val(dy);
+
+        $('#totalarea').text(parseInt($('#height').val())*parseInt($('#width').val()));
+
+        var bestfit = true;
+
+        $('#bestfit').click(function(){
+            bestfit = !bestfit;
+            if(bestfit) $(this).attr('checked','checked');
+            else       $(this).removeAttr('checked');
+        });
+
+        $('#height').change(function(){
+            if(bestfit){
+                $('#width').val(Math.floor(dx*(parseInt($(this).val())/dy)));
+            }
+            $('#totalarea').text(parseInt($('#height').val())*parseInt($('#width').val()));
+        });
+        $('#width').change(function(){
+            if(bestfit){
+                $('#height').val(Math.floor(dy*(parseInt($(this).val())/dx)));
+            }
+            $('#totalarea').text(parseInt($('#height').val())*parseInt($('#width').val()));
+        });
     });
 </script>
 </body>

@@ -6,15 +6,17 @@ draw = {
     pondData:null,
     pondWidth:null,
     pondHeight:null,
-    filter:'sharpen',
+    filter:'none',
     //functions
     init:function(width,height){
         this.pondWidth = width;
         this.pondHeight = height;
         this.pond = document.getElementById("pond");
-        var screenX = $(window).width()-200;
-        var screenY = $(window).height()-350;
-        this.scale = Math.min(Math.ceil(screenX/width),Math.ceil(screenY/height));
+        var screenX = $('html').width()-350;
+        var screenY = $('html').height()-150;
+        console.log(screenX,screenY);
+        console.log(Math.floor(screenX/width),Math.floor(screenY/height))
+        this.scale = Math.min(Math.floor(screenX/width),Math.floor(screenY/height));
         $('#pond').attr('height',height*this.scale);
         $('#pond').attr('width',width*this.scale);
         this.pondCtx = this.pond.getContext("2d");
