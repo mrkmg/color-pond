@@ -3,6 +3,8 @@ ColorPond
 
 An HTML5 Canvas Virtual Life Emulator
 
+Play with it at [mrkmg.github.io/ColorPond](http://mrkmg.github.io/ColorPond)
+
 Usage
 -----
 
