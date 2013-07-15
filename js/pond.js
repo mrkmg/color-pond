@@ -59,11 +59,19 @@ return ((this%n)+n)%n;
 }
 
 
+var TPS_filterStrength = 20;
+var TPS_frameTime = 0, TPS_lastLoop = new Date, TPS_thisLoop;
+
 var FPS_filterStrength = 20;
 var FPS_frameTime = 0, FPS_lastLoop = new Date, FPS_thisLoop;
 
-function gameLoop(){
-  // ...
+function gameLoopTick(){
+  var TPS_thisFrameTime = (TPS_thisLoop=new Date) - TPS_lastLoop;
+  TPS_frameTime+= (TPS_thisFrameTime - TPS_frameTime) / TPS_filterStrength;
+  TPS_lastLoop = TPS_thisLoop;
+}
+
+function gameLoopFrame(){
   var FPS_thisFrameTime = (FPS_thisLoop=new Date) - FPS_lastLoop;
   FPS_frameTime+= (FPS_thisFrameTime - FPS_frameTime) / FPS_filterStrength;
   FPS_lastLoop = FPS_thisLoop;
@@ -71,15 +79,16 @@ function gameLoop(){
 
 // Report the fps only every second, to only lightly affect measurements
 $(document).ready(function(){
-    var fpsOut = document.getElementById('fps');
+    var tpsOut = document.getElementById('fps');
     setInterval(function(){
-      fpsOut.innerHTML = (1000/FPS_frameTime).toFixed(1) + " fps"+"<br /> Tick: "+global_tick;
+      tpsOut.innerHTML = (1000/TPS_frameTime).toFixed(1) + " tps<br />"+
+                         (1000/FPS_frameTime).toFixed(1) + " fps<br />Tick: "+global_tick;
     },1000);
 });
 
 pond = {
     //variables
-    cellWall:false,
+    cellWall:true,
     mutationChance:20,
     flowChance:10,
     producerSpawnChance:20,
@@ -155,7 +164,7 @@ pond = {
         global_tick = 0;
     },
     step:function(){
-        gameLoop();
+        gameLoopTick();
         global_tick++;
         this.insertRandomLife();
         this.processOrgs();
@@ -512,6 +521,7 @@ pond = {
             this.renderOne(i);
         }
         draw.render();
+        gameLoopFrame();
     },
     renderOne:function(i){
         switch(this.map[i][0]){

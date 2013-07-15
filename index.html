@@ -17,9 +17,12 @@
     <div style="" id="fps"></div>
     <h2>ColorPond</h2>
     <div id="init">
-        Width: <input type="number" id="width" value="125"  min="1" /><br />
-        Height: <input type="number" id="height" value="125" min="1" /><br />
-        Seed: <input type="text" id="seed" />(leave blank for random)
+        <span class="item">Width: <input type="number" id="width" value="125"  min="1" max="9999" /></span>
+        <div class="padder"></div>
+        <span class="item">Height: <input type="number" id="height" value="125" min="1" max="9999" /></span>
+        <div class="padder"></div>
+        <span class="item">Seed: <input type="text" id="seed" />(leave blank for random)</span>
+        <div class="padder"></div>
     </div>
     <div id="pondHolder">
         <canvas id="pond"></canvas>
@@ -27,8 +30,8 @@
     <div id="options">
         <button id="pauserun">Pause/Run</button>
         <button id="singlebulk">Bulk Render</button>
-        <span class="item">Update Rate: 1/<input id="bulkrate" type="number" value="1" min="1" max="100" /></span>
-        <span class="item">Tick Wait: <input id="speed" type="number" value="10" min="10" max="5000" /></span>
+        <span class="item">Update Rate: 1/<input id="bulkrate" type="number" min="1" max="100" /></span>
+        <span class="item">Tick Wait: <input id="speed" type="number" min="10" max="5000" /></span>
         <span class="item">Filter: <select id="filter">
           <option value="none">None</option>
           <option value="sharpen" selected>Sharpen</option>
@@ -36,10 +39,12 @@
           <option value="smooth">Neon Smooth</option>
         </select></span>
         <button id="border">Cell Wall Off</button>
-        <br />
-        <span class="item">Flow Chance: 1/<input id="flow" type="number" value="2" min="1" max="50" /></span>
-        <span class="item">Life Chance: 1/<input id="life" type="number" value="8" min="1" max="500" /></span>
-        <span class="item">Mutation Chance: 1/<input id="mutation" type="number" value="20" min="1" max="500" /></span><br />
+        <div class="padder"></div>
+        <span class="item">Flow Chance: 1/<input id="flow" type="number" min="1" max="50" /></span>
+        <span class="item">Producer Spawn Chance: 1/<input id="pro_life" type="number" min="1" max="500" /></span>
+        <span class="item">Consumer Spawn Chance: 1/<input id="con_life" type="number" min="1" max="500" /></span>
+        <span class="item">Mutation Chance: 1/<input id="mutation" type="number" min="1" max="500" /></span>
+        <div class="padder"></div>
     <button id="doinit">Go</button>
     </div>
     <div id="info">
@@ -52,6 +57,10 @@
             else Math.seedrandom($('#seed').val());
             pond.width = parseInt($('#width').val());
             pond.height = parseInt($('#height').val());
+            if(pond.width*pond.height > 22500){
+                conf = confirm('You have selected a LARGE map. This will almost certianly cause extreme lag. Press OK to continue, or cancel to change the size.');
+                if(!conf) return;
+            }
             pond.init();
             pond.render();
             $('#pondHolder, #pauserun').show();
@@ -114,7 +123,8 @@
         $('#filter').val(draw.filter);
         $('#pro_life').val(pond.producerSpawnChance);
         $('#con_life').val(pond.consumerSpawnChance);
-
+        $('#singlebulk').text(pond.singleRender?'Single Render':'Bulk Render');
+        $('#border').text(pond.cellWall?'Cell Wall On':'Cell Wall Off');
     });
 </script>
 </body>
