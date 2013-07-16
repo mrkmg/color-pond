@@ -14,8 +14,6 @@ draw = {
         this.pond = document.getElementById("pond");
         var screenX = $('html').width()-350;
         var screenY = $('html').height()-150;
-        console.log(screenX,screenY);
-        console.log(Math.floor(screenX/width),Math.floor(screenY/height))
         this.scale = Math.min(Math.floor(screenX/width),Math.floor(screenY/height));
         $('#pond').attr('height',height*this.scale);
         $('#pond').attr('width',width*this.scale);

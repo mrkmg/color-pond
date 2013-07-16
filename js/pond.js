@@ -34,7 +34,8 @@ ORG_REFINEDSTOR =  5;
 ORG_STRENGTH =     6;
 ORG_DIDCONSUME =   7;
 ORG_DEMEANOR =     8;
-ORG_ATTR =          9;
+ORG_ATTR =         9;
+ORG_DIDCONVERT =      10;
 
     ORG_TYPE_PRODUCER =         0;
     ORG_TYPE_CONSUMER =         1;
@@ -51,7 +52,7 @@ ORG_ATTR =          9;
 
 
 
-BG_COLOR = [60,60,60];
+BG_COLOR = [0,25,51];
 
 //Fix the shitty JS Mod and lack of clone
 Number.prototype.mod = function(n) { return ((this%n)+n)%n; }
@@ -92,12 +93,13 @@ pond = {
     //variables
     cellWall:true,
     mutationChance:20,
-    flowChance:3,
+    flowChance:2,
     producerSpawnChance:20,
     consumerSpawnChance:10,
-    resouceThreshold:80,
+    resouceThreshold:30,
     singleRender:false,
     resourceSpawnChance:40,
+    plantStartMoveChance:15,
     bulkOdd:1,
     width:5,
     height:5,
@@ -111,8 +113,8 @@ pond = {
     },
     materials:{
         hydrocarben:[['hydrogen','carben'],[0,128,255]],
-        carbox:[['carben','oxogen'],[0,0,255]],
-        oxydro:[['oxogen','hydrogen'],[127,0,255]],
+        carbox:[['carben','oxogen'],[127,0,255]],
+        oxydro:[['oxogen','hydrogen'],[0,0,255]],
         /*irogen:[['iron','hydrogen'],[80,100,120]],
         rust:[['oxogen','iron'],[120,100,80]],
         caron:[['carben','iron'],[80,120,100]],*/
@@ -173,10 +175,10 @@ pond = {
         global_tick++;
         this.processMap();
         this.pushPop();
-        this.processMap();
-        this.insertRandomLife();
-        this.processOrgs();
         this.flowResMats();
+        this.insertRandomLife();
+        this.processMap();
+        this.processOrgs();
         if(!this.singleRender && global_tick.mod(this.bulkOdd)==0){
             this.render();
         }
@@ -195,19 +197,21 @@ pond = {
         }
     },
     flowResMats:function(){
-        var list = this.lists[MAP_TYPE_RESOURCE].concat(MAP_TYPE_MATERIAL);
+        var listr = this.lists[MAP_TYPE_RESOURCE].slice(0);
+        var listm = this.lists[MAP_TYPE_MATERIAL].slice(0);
+        var list = listr.concat(listm);
         list.sort(function(){ return .5 - Math.random(); });
         for(var l in list){
             if(!helpers.chance(this.flowChance)) continue;
             var i = list[l];
             var sides = helpers.getSides(i);
-            var isMatch = false;
+            var matches = 0;
             for(var s in sides){
                 var side = sides[s];
                 if(this.map[i][MAP_TYPE] == this.map[side][MAP_TYPE] &&
-                   this.map[i][MAP_ITEM] == this.map[side][MAP_ITEM]) isMatch = true;
+                   this.map[i][MAP_ITEM] == this.map[side][MAP_ITEM]) matches++;
             }
-            if(isMatch && helpers.bool()) continue;
+            if(!helpers.chance(matches*4)) continue;
             var d = Math.floor(Math.random()*4);
             if(this.map[sides[d]][MAP_TYPE] == MAP_TYPE_ORGANISM) continue;
             var c = this.map[i];
@@ -221,8 +225,8 @@ pond = {
         }
     },
     pushPop:function(){
-        
-        if((this.currents[MAP_TYPE_RESOURCE]/this.total)*100 > this.resouceThreshold) return;
+        var pempty = (this.currents[MAP_TYPE_EMPTY]/this.total)*100;
+        if( pempty < 100-this.resouceThreshold) return;
 
         var list = this.lists[MAP_TYPE_EMPTY].slice(0);
         list.sort(function(){ return 0.5 - Math.random(); });
@@ -238,20 +242,14 @@ pond = {
         for(i in list){
             var oi = list[i];
             this.map[oi][MAP_ITEM][ORG_DIDCONSUME] = false;
+            this.map[oi][MAP_ITEM][ORG_DIDCONVERT] = false;
             this.orgEat(oi);
-            this.orgProduce(oi)
             this.orgInteract(oi);
-            this.orgMove(oi);
-        }
-        var list = [];
-        for(var i in this.map){
-            if(this.map[i][MAP_TYPE] == MAP_TYPE_ORGANISM) list.push(parseInt(i));
-        }
-        list.sort(function(){ return .5 - Math.random(); });
-        for(i in list){
-            var oi = list[i];
+            this.orgProduce(oi);
             this.orgReproduce(oi);
             this.orgExcrete(oi);
+            oi = this.orgMove(oi);
+            
             this.orgLife(oi);
         }
     },
@@ -259,18 +257,22 @@ pond = {
         //TODO IMPROVE - DONT KNOW HOW BUT NEED TO!!!!
         var o = this.map[i][MAP_ITEM];
         if(this.map[i][MAP_ITEM][ORG_TYPE] == ORG_TYPE_PRODUCER){
-            return;
-            if(!helpers.chance(o[ORG_ATTR][ORG_ATTR_MOVECHANCE])) return;
+            if(o[ORG_DIDCONVERT] || o[ORG_DIDCONSUME] || !helpers.chance(o[ORG_ATTR][ORG_ATTR_MOVECHANCE])) return i;
             var sides = helpers.getSides(i);
             sides.sort(function(){ return 0.5 - Math.random(); });
-            if(this.map[sides[0]][MAP_TYPE] == MAP_TYPE_ORGANISM) return;
-            var tmp = this.map[sides[0]];
-            this.map[sides[0]] = this.map[i];
+            for(var cc=0;cc<4;cc++){
+                moved = sides[cc];
+                if(this.map[moved][MAP_TYPE] != MAP_TYPE_ORGANISM) break;
+                if(cc == 3) return i;
+            }
+            var tmp = this.map[moved];
+            this.map[moved] = this.map[i];
             this.map[i] = tmp;
             if(this.singleRender){
                 this.renderOne(i);
-                this.renderOne(sides[0]);
+                this.renderOne(moved);
             }
+            return moved;
         } else {
             var cxy = helpers.indexToCart(i);
             var domove = false;
@@ -321,7 +323,7 @@ pond = {
             for(var cc=0;cc<4;cc++){
                 if(this.map[sides[moved]][MAP_TYPE] != MAP_TYPE_ORGANISM) break;
                 moved = Math.floor(Math.random()*4);
-                if(cc == 3) return;
+                if(cc == 3) return i;
             }
             var tmp = this.map[sides[moved]];
             this.map[sides[moved]] = this.map[i];
@@ -330,7 +332,9 @@ pond = {
                 this.renderOne(i);
                 this.renderOne(sides[moved]);
             }
+            return sides[moved];
         }
+        return i;
     },
     orgEat:function(i){
         var o = this.map[i][MAP_ITEM];
@@ -367,12 +371,15 @@ pond = {
     orgInteract:function(i){
         //TODO Implement Passive and Aggressive interactions
         // return;
-        o = this.map[i][MAP_ITEM];
-        sides = helpers.getSides(i);
+        var o = this.map[i][MAP_ITEM];
+        var sides = helpers.getSides(i);
         sides.sort(function(){ return 0.5 - Math.random(); });
-        for(var s in sides) if(this.map[sides[s]][MAP_TYPE] == MAP_TYPE_ORGANISM){
-            so = this.map[sides[s]];
+        for(var s in sides){
+            var side = sides[s];
             var demeanor = o[ORG_DEMEANOR];
+            if(this.map[side][MAP_TYPE] != MAP_TYPE_ORGANISM) continue;
+
+            var so = this.map[side][MAP_ITEM];
             if(o[ORG_ID] == so[ORG_ID]) demeanor = ORG_DEMEANOR_HELPFUL;
 
             switch(demeanor){
@@ -391,21 +398,13 @@ pond = {
     orgShare:function(o,so){
         //TODO Implement more sharing ( Consumers<->Consumers & Producers<->Consumers)
         if(o[ORG_TYPE] != ORG_TYPE_PRODUCER && so[ORG_TYPE] != ORG_TYPE_PRODUCER) return;
-        if(so[ORG_TYPE] == ORG_TYPE_PRODUCER){
-            for(var omi in this.materials[o[ORG_MAT]]){
-                var mat = this.materials[o[ORG_MAT]][omi];
-                var somi = this.materials[so[ORG_MAT]].indexOf(mat);
-                if(res_i == -1) continue;
-                if(o[ORG_RAWSTOR][omi] - so[ORG_RAWSTOR][somi] >= 2){
-                    o[ORG_RAWSTOR][omi]--;
-                    so[ORG_RAWSTOR][somi]++;
-                    so[ORG_DIDCONSUME]=true;
-                }
-            }
-        } else {
-            if(o[ORG_REFINEDSTOR] - so[ORG_REFINEDSTOR] >= 2){
-                o[ORG_REFINEDSTOR]--;
-                so[ORG_REFINEDSTOR]++;
+        for(var omi in this.materials[o[ORG_MAT]]){
+            var resou = this.materials[o[ORG_MAT]][omi];
+            var somi = this.materials[so[ORG_MAT]].indexOf(resou);
+            if(somi == -1) continue;
+            if(o[ORG_RAWSTOR][omi] - so[ORG_RAWSTOR][somi] >= 2){
+                o[ORG_RAWSTOR][omi]--;
+                so[ORG_RAWSTOR][somi]++;
                 so[ORG_DIDCONSUME]=true;
             }
         }
@@ -422,6 +421,7 @@ pond = {
             if(do_produce){
                 for(var sto in o[ORG_RAWSTOR]) o[ORG_RAWSTOR][sto]--;
                 o[ORG_REFINEDSTOR]++;
+                o[ORG_DIDCONVERT]=true;
             }
         } else if(o[ORG_TYPE] == ORG_TYPE_CONSUMER){
             if(o[ORG_REFINEDSTOR] > 2){
@@ -429,58 +429,33 @@ pond = {
                 for(var s in o[ORG_RAWSTOR]){
                     o[ORG_RAWSTOR][s]++;
                 }
+                o[ORG_DIDCONVERT]=true;
             }
         } else alert('UNKNOWN organism TYPE');
     },
     orgExcrete:function(i){
         //TODO Look over and check this.
         var o = this.map[i][MAP_ITEM];
-        var mat = this.materials[o[ORG_MAT]][MAT_RES];
-
         if(o[ORG_TYPE] == ORG_TYPE_PRODUCER && o[ORG_REFINEDSTOR] > 0){
+            var mat = this.materials[o[ORG_MAT]][MAT_RES];
             var sides = helpers.getSides(i);
             sides.sort(function(){ return .5 - Math.random(); });
             for(var s in sides){
-                if(this.map[sides[s]][MAP_TYPE] == MAP_TYPE_EMPTY){
+                if(this.map[sides[s]][MAP_TYPE] == MAP_TYPE_EMPTY || this.map[sides[s]][MAP_TYPE] == MAP_TYPE_RESOURCE){
                     this.map[sides[s]] = [MAP_TYPE_MATERIAL,o[ORG_MAT]];
                     if(this.singleRender) this.renderOne(sides[s]);
                     o[ORG_REFINEDSTOR]--;
                     break;
                 }
             }
-        } else if(o[ORG_TYPE] == ORG_TYPE_CONSUMER){
-            var sides = helpers.getSides(i);
-            sides.sort(function(){ return 0.5 - Math.random(); });
-            var didPlace = false;
-            for(var s in sides){
-                var side = sides[s];
-                if(this.map[side][MAP_TYPE] == MAP_TYPE_EMPTY){
-                    if(o[ORG_RAWSTOR][0] > 0) {
-                        if(o[ORG_RAWSTOR][1]){
-                            if(helpers.bool()){
-                                this.map[side] = [MAP_TYPE_RESOURCE,this.materials[o[ORG_MAT]][MAT_RES][0]];
-                                o[ORG_RAWSTOR][0]--;
-                            } else {
-                                this.map[side] = [MAP_TYPE_RESOURCE,this.materials[o[ORG_MAT]][MAT_RES][1]];
-                                o[ORG_RAWSTOR][1]--;
-                            }
-                        } else {
-                            this.map[side] = [MAP_TYPE_RESOURCE,this.materials[o[ORG_MAT]][MAT_RES][1]];
-                            o[ORG_RAWSTOR][1]--;
-                        }
-                        didPlace = true;
-                    } else if(o[ORG_RAWSTOR][1]){
-                        didPlace = true;
-                    }
-                }
-                if(!didPlace) break;
-            }
         }
     },
     orgLife:function(i){
+        
         var o = this.map[i][MAP_ITEM];
-        if(o[ORG_DIDCONSUME]){
-            if(o[ORG_STRENGTH] < o[ORG_ATTR][ORG_ATTR_MAXSTRENGTH]) o[ORG_STRENGTH]+=10;
+        
+        if(o[ORG_DIDCONVERT] || o[ORG_DIDCONSUME]){
+            if(o[ORG_STRENGTH] < o[ORG_ATTR][ORG_ATTR_MAXSTRENGTH]) o[ORG_STRENGTH]+=20;
         } else {
             if(o[ORG_STRENGTH] < 20 && o[ORG_STRENGTH] > 0){
                 var sides = helpers.getSides(i);
@@ -500,7 +475,14 @@ pond = {
                 if(starved) o[ORG_STRENGTH]-=2;
             }
             else if(o[ORG_STRENGTH] < 1) {
-                this.map[i] = [MAP_TYPE_EMPTY];
+                if(o[ORG_TYPE] == ORG_TYPE_PRODUCER){
+                    if(o[ORG_REFINEDSTOR] > 0)
+                        this.map[i] = [MAP_TYPE_MATERIAL,o[ORG_MAT]];
+                    else
+                        this.map[i] = [MAP_TYPE_EMPTY];
+                }
+                else
+                    this.map[i] = [MAP_TYPE_RESOURCE,this.materials[o[ORG_MAT]][MAT_RES][helpers.bool()?0:1]]
                 if(this.singleRender) this.renderOne(i);
             } else {
                 o[ORG_STRENGTH]-=2;
@@ -524,7 +506,7 @@ pond = {
                     if(helpers.chance(this.mutationChance)){
                         newo[ORG_ID] = this.org_id_max; this.org_id_max++;
                         newo[ORG_ATTR][ORG_ATTR_REPOCHANCE]+=Math.floor(Math.random()*3)-1;
-                        newo[ORG_ATTR][ORG_ATTR_MOVECHANCE]+=Math.floor(Math.random()*3)-1;
+                        newo[ORG_ATTR][ORG_ATTR_MOVECHANCE]+=Math.max(Math.floor(Math.random()*3)-1,1);
                         newo[ORG_ATTR][ORG_ATTR_REPOAT]+=Math.floor(Math.random()*5)-2;
                         newo[ORG_ATTR][ORG_ATTR_MAXSTRENGTH]+=Math.floor(Math.random()*9)-4;
                         if(o[ORG_TYPE]!=ORG_TYPE_CONSUMER) newo[ORG_CL][CL_R]=(newo[ORG_CL][CL_R]+Math.floor(Math.random()*61)-30).mod(200);
@@ -608,9 +590,9 @@ pond = {
         o[ORG_DEMEANOR] = helpers.bool()?ORG_DEMEANOR_HELPFUL:ORG_DEMEANOR_PASSIVE;
         o[ORG_ATTR] = [];
         o[ORG_ATTR][ORG_ATTR_REPOCHANCE] = 3;
-        o[ORG_ATTR][ORG_ATTR_REPOAT] = 80;
+        o[ORG_ATTR][ORG_ATTR_REPOAT] = o[ORG_TYPE]==ORG_TYPE_PRODUCER?80:140;
         o[ORG_ATTR][ORG_ATTR_MAXSTRENGTH] = 200;
-        o[ORG_ATTR][ORG_ATTR_MOVECHANCE] = o[ORG_TYPE]==ORG_TYPE_PRODUCER?20:2;
+        o[ORG_ATTR][ORG_ATTR_MOVECHANCE] = o[ORG_TYPE]==ORG_TYPE_PRODUCER?this.plantStartMoveChance:2;
         return o;
     },
 

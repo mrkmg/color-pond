@@ -43,6 +43,7 @@
             <span class="item">Mutation %: 1/<input id="mutation" type="number" min="1" max="500" /></span>
             <span class="item">R Spawn %: 1/<input id="resourcespawn" type="number" min="1" max="500" /></span>
             <span class="item">Goal R %: /<input id="goalresouce" type="number" min="1" max="500" /></span>
+            <span class="item">P Move %: /<input id="plantStartMoveChance" type="number" min="1" max="500" /></span>
             <span class="item">Cell Wall: <input id="cellwall" type="checkbox" /></span>
             <div id="info"></div>
         </div>
@@ -106,6 +107,9 @@
         $('#goalresouce').change(function(ev){
             pond.resouceThreshold = parseInt($(this).val());
         });
+        $('#plantStartMoveChance').change(function(ev){
+            pond.plantStartMoveChance = parseInt($(this).val());
+        });
         $('#mutation').change(function(ev){
             pond.mutationChance = parseInt($(this).val());
         });
@@ -128,6 +132,7 @@
         $('#pro_life').val(pond.producerSpawnChance);
         $('#con_life').val(pond.consumerSpawnChance);
         $('#resourcespawn').val(pond.resourceSpawnChance);
+        $('#plantStartMoveChance').val(pond.plantStartMoveChance);
         $('#goalresouce').val(pond.resouceThreshold);
         $('#singlebulk').text(pond.singleRender?'Single Render':'Bulk Render');
         if(pond.cellWall){
