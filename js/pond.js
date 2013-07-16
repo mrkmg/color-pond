@@ -22,12 +22,9 @@ MAP_ITEM =  1;
     MAP_TYPE_MATERIAL = 2;
     MAP_TYPE_ORGANISM = 3;
 
-MAT_RES =   0;
-MAT_CL =    1;
-
 ORG_ID =           0;
 ORG_TYPE =         1;
-ORG_MAT =          2;
+ORG_DESIRE =          2;
 ORG_CL =           3;
 ORG_RAWSTOR =      4;
 ORG_REFINEDSTOR =  5;
@@ -103,26 +100,16 @@ pond = {
     bulkOdd:1,
     width:5,
     height:5,
-    resources:{
-        oxogen:[0,51,102],
-        carben:[0,0,102],
-        hydrogen:[51,0,102],
-        //iron:[40,60,60],
-        /*argon:[60,60,40],
-        helium:[60,60,60],*/
-    },
-    materials:{
-        hydrocarben:[['hydrogen','carben'],[0,128,255]],
-        carbox:[['carben','oxogen'],[127,0,255]],
-        oxydro:[['oxogen','hydrogen'],[0,0,255]],
-        /*irogen:[['iron','hydrogen'],[80,100,120]],
-        rust:[['oxogen','iron'],[120,100,80]],
-        caron:[['carben','iron'],[80,120,100]],*/
-
-        /*heligon:[['helium','argon'],[120,100,80]],
-        arion:[['argon','iron'],[100,120,80]],
-        helion:[['helium','iron'],[80,100,120]],*/
-    },
+    resources:[
+        [0,51,102],
+        [0,0,102],
+        [51,0,102],
+    ],
+    materials:[
+        [0,128,255],
+        [0,0,255],
+        [127,0,255],
+    ],
 
     //functions
     init:function(){
@@ -169,6 +156,19 @@ pond = {
             }
         });
         global_tick = 0;
+
+        for(var i=0;i<50;i++){
+            this.map[Math.floor(Math.random()*this.total)] = [MAP_TYPE_ORGANISM,this.makeRandomOrganism(ORG_TYPE_PRODUCER)];
+            this.map[Math.floor(Math.random()*this.total)] = [MAP_TYPE_ORGANISM,this.makeRandomOrganism(ORG_TYPE_CONSUMER)];
+        }
+        $("#pond").click(function(){
+            console.log('test');
+            for(var i=0;i<50;i++){
+                pond.map[Math.floor(Math.random()*pond.total)] = [MAP_TYPE_ORGANISM,pond.makeRandomOrganism(ORG_TYPE_PRODUCER)];
+                pond.map[Math.floor(Math.random()*pond.total)] = [MAP_TYPE_ORGANISM,pond.makeRandomOrganism(ORG_TYPE_CONSUMER)];
+            }
+        });
+
     },
     step:function(){
         gameLoopTick();
@@ -185,7 +185,7 @@ pond = {
     },
     insertRandomLife:function(){
         //TODO implement a threshold for life generation
-        if(helpers.chance(this.producerSpawnChance)){
+        /*if(helpers.chance(this.producerSpawnChance)){
             var spot = Math.floor(Math.random()*this.total);
             this.map[spot] = [MAP_TYPE_ORGANISM,this.makeRandomOrganism(ORG_TYPE_PRODUCER)];
             if(this.singleRender) this.renderOne(spot);
@@ -194,7 +194,7 @@ pond = {
             var spot = Math.floor(Math.random()*this.total);
             this.map[spot] = [MAP_TYPE_ORGANISM,this.makeRandomOrganism(ORG_TYPE_CONSUMER)];
             if(this.singleRender) this.renderOne(spot);
-        }
+        }*/
     },
     flowResMats:function(){
         var listr = this.lists[MAP_TYPE_RESOURCE].slice(0);
@@ -249,119 +249,90 @@ pond = {
             this.orgReproduce(oi);
             this.orgExcrete(oi);
             oi = this.orgMove(oi);
-            
             this.orgLife(oi);
         }
     },
     orgMove:function(i){
-        //TODO IMPROVE - DONT KNOW HOW BUT NEED TO!!!!
         var o = this.map[i][MAP_ITEM];
-        if(this.map[i][MAP_ITEM][ORG_TYPE] == ORG_TYPE_PRODUCER){
-            if(o[ORG_DIDCONVERT] || o[ORG_DIDCONSUME] || !helpers.chance(o[ORG_ATTR][ORG_ATTR_MOVECHANCE])) return i;
-            var sides = helpers.getSides(i);
-            sides.sort(function(){ return 0.5 - Math.random(); });
-            for(var cc=0;cc<4;cc++){
-                moved = sides[cc];
-                if(this.map[moved][MAP_TYPE] != MAP_TYPE_ORGANISM) break;
-                if(cc == 3) return i;
-            }
-            var tmp = this.map[moved];
-            this.map[moved] = this.map[i];
-            this.map[i] = tmp;
-            if(this.singleRender){
-                this.renderOne(i);
-                this.renderOne(moved);
-            }
-            return moved;
-        } else {
-            var cxy = helpers.indexToCart(i);
-            var domove = false;
-            var checker = function(a){
-                return pond.map[a][MAP_TYPE] == MAP_TYPE_MATERIAL && o[ORG_MAT] == pond.map[a][MAP_ITEM];
-            }
-            for(var d=1;d<5;d++){
-                //l
-                    var ci = helpers.getRelative(i,0,d);
-                    if(checker(ci)){ domove = true; var moved = 0;}
-                    if(!domove)
-                    for(var s=d;s>=0;s--){
-                        if(checker(helpers.getRelative(ci,2,s)) || checker(helpers.getRelative(ci,3,s))) { domove = true; var moved = 0; break;}
-                    }
-                //r
-                if(!domove){
-                    ci = helpers.getRelative(i,1,d);
-                    if(!domove)
-                    for(var s=d;s>=0;s--){
-                        if(checker(helpers.getRelative(ci,2,s)) || checker(helpers.getRelative(ci,3,s))) { domove = true; var moved = 1; break;}
-                    }
-                }
-                //u
-                if(!domove){
-                    ci = helpers.getRelative(i,2,d);
-                    if(!domove)
-                    for(var s=d-1;s>=0;s--){
-                        if(checker(helpers.getRelative(ci,0,s)) || checker(helpers.getRelative(ci,1,s))) { domove = true; var moved = 2; break;}
-                    }
-                }
-                //d
-                if(!domove){
-                    ci = helpers.getRelative(i,3,d);
-                    if(!domove)
-                    for(var s=d-1;s>=0;s--){
-                        if(checker(helpers.getRelative(ci,0,s)) || checker(helpers.getRelative(ci,1,s))) { domove = true; var moved = 3; break;}
-                    }
-                }
+        if(o[ORG_TYPE] == ORG_TYPE_PRODUCER && (o[ORG_DIDCONVERT] || !helpers.chance(o[ORG_ATTR][ORG_ATTR_MOVECHANCE]))) return i;
 
-                if(domove){
-                    break;
+        var cxy = helpers.indexToCart(i);
+        var domove = false;
+        var checker = function(a){
+            return pond.map[a][MAP_TYPE] == (o[ORG_TYPE]==ORG_TYPE_PRODUCER?MAP_TYPE_RESOURCE:MAP_TYPE_MATERIAL) && o[ORG_DESIRE] == pond.map[a][MAP_ITEM];
+        }
+        for(var d=1;d<10;d++){
+            //l
+                var ci = helpers.getRelative(i,0,d);
+                if(checker(ci)){ domove = true; var moved = 0;}
+                if(!domove)
+                for(var s=d;s>=0;s--){
+                    if(checker(helpers.getRelative(ci,2,s)) || checker(helpers.getRelative(ci,3,s))) { domove = true; var moved = 0; break;}
+                }
+            //r
+            if(!domove){
+                ci = helpers.getRelative(i,1,d);
+                if(!domove)
+                for(var s=d;s>=0;s--){
+                    if(checker(helpers.getRelative(ci,2,s)) || checker(helpers.getRelative(ci,3,s))) { domove = true; var moved = 1; break;}
                 }
             }
+            //u
             if(!domove){
-                var moved = Math.floor(Math.random()*4);
+                ci = helpers.getRelative(i,2,d);
+                if(!domove)
+                for(var s=d-1;s>=0;s--){
+                    if(checker(helpers.getRelative(ci,0,s)) || checker(helpers.getRelative(ci,1,s))) { domove = true; var moved = 2; break;}
+                }
             }
-            var sides = helpers.getSides(i);
-            for(var cc=0;cc<4;cc++){
-                if(this.map[sides[moved]][MAP_TYPE] != MAP_TYPE_ORGANISM) break;
-                moved = Math.floor(Math.random()*4);
-                if(cc == 3) return i;
+            //d
+            if(!domove){
+                ci = helpers.getRelative(i,3,d);
+                if(!domove)
+                for(var s=d-1;s>=0;s--){
+                    if(checker(helpers.getRelative(ci,0,s)) || checker(helpers.getRelative(ci,1,s))) { domove = true; var moved = 3; break;}
+                }
             }
-            var tmp = this.map[sides[moved]];
-            this.map[sides[moved]] = this.map[i];
-            this.map[i] = tmp;
-            if(this.singleRender){
-                this.renderOne(i);
-                this.renderOne(sides[moved]);
+
+            if(domove){
+                break;
             }
-            return sides[moved];
         }
-        return i;
+        if(!domove){
+            var moved = Math.floor(Math.random()*4);
+        }
+        var sides = helpers.getSides(i);
+        for(var cc=0;cc<4;cc++){
+            if(this.map[sides[moved]][MAP_TYPE] != MAP_TYPE_ORGANISM) break;
+            moved = Math.floor(Math.random()*4);
+            if(cc == 3) return i;
+        }
+        var tmp = this.map[sides[moved]];
+        this.map[sides[moved]] = this.map[i];
+        this.map[i] = tmp;
+        if(this.singleRender){
+            this.renderOne(i);
+            this.renderOne(sides[moved]);
+        }
+        return sides[moved];
     },
     orgEat:function(i){
         var o = this.map[i][MAP_ITEM];
-        var mat = this.materials[o[ORG_MAT]][MAT_RES];
 
         var sides = helpers.getSides(i);
         if(o[ORG_TYPE] == ORG_TYPE_PRODUCER){
             for(var s in sides){
                 var side = sides[s];
-                if(this.map[side][MAP_TYPE] != MAP_TYPE_RESOURCE) continue;
-                var res = mat.indexOf(this.map[side][MAP_ITEM]);
-                if(res == -1) continue;
-                if(o[ORG_RAWSTOR][res] > 5) continue;
+                if(this.map[side][MAP_TYPE] != MAP_TYPE_RESOURCE || o[ORG_DESIRE] != this.map[side][MAP_ITEM]) continue;
                 this.map[side] = [MAP_TYPE_EMPTY];
-                if(this.singleRender) this.renderOne(side);
-                o[ORG_RAWSTOR][res]++;
+                o[ORG_RAWSTOR]++;
                 o[ORG_DIDCONSUME] = true;
-                break;
             }
-        } else if(o[ORG_TYPE] = ORG_TYPE_CONSUMER){
+        } else if(o[ORG_TYPE] == ORG_TYPE_CONSUMER){
             for(var s in sides){
                 var side = sides[s];
-                if(this.map[side][MAP_TYPE] != MAP_TYPE_MATERIAL) continue;
-                if(o[ORG_MAT] != this.map[side][MAP_ITEM]) continue;
-                //if(o[ORG_REFINEDSTOR] > 5) continue;
+                if(this.map[side][MAP_TYPE] != MAP_TYPE_MATERIAL || o[ORG_DESIRE] != this.map[side][MAP_ITEM]) continue;
                 this.map[side] = [MAP_TYPE_EMPTY];
-                if(this.singleRender) this.renderOne(side);
                 o[ORG_REFINEDSTOR]++;
                 o[ORG_DIDCONSUME] = true;
             }
@@ -396,53 +367,34 @@ pond = {
         }
     },
     orgShare:function(o,so){
-        //TODO Implement more sharing ( Consumers<->Consumers & Producers<->Consumers)
-        if(o[ORG_TYPE] != ORG_TYPE_PRODUCER && so[ORG_TYPE] != ORG_TYPE_PRODUCER) return;
-        for(var omi in this.materials[o[ORG_MAT]]){
-            var resou = this.materials[o[ORG_MAT]][omi];
-            var somi = this.materials[so[ORG_MAT]].indexOf(resou);
-            if(somi == -1) continue;
-            if(o[ORG_RAWSTOR][omi] - so[ORG_RAWSTOR][somi] >= 2){
-                o[ORG_RAWSTOR][omi]--;
-                so[ORG_RAWSTOR][somi]++;
-                so[ORG_DIDCONSUME]=true;
-            }
-        }
+        if(o[ORG_TYPE] != ORG_TYPE_PRODUCER || o[ORG_ID] != i[ORG_ID] || o[ORG_RAWSTOR] > so[ORG_RAWSTOR]+1) return;
+        o[ORG_RAWSTOR]--;
+        so[ORG_RAWSTOR]--;
     },
     orgProduce:function(i){
         //TODO look over and improve
         var o = this.map[i][MAP_ITEM];
         if(o[ORG_TYPE] == ORG_TYPE_PRODUCER){
-            var do_produce = true;
-            for(var sto in o[ORG_RAWSTOR]) if(o[ORG_RAWSTOR][sto] == 0){
-                do_produce=false;
-                break;
-            }
-            if(do_produce){
-                for(var sto in o[ORG_RAWSTOR]) o[ORG_RAWSTOR][sto]--;
-                o[ORG_REFINEDSTOR]++;
-                o[ORG_DIDCONVERT]=true;
-            }
+            if(o[ORG_RAWSTOR] <= 0) return;
+            o[ORG_RAWSTOR]--;
+            o[ORG_REFINEDSTOR]++;
+            o[ORG_DIDCONVERT]=true;
         } else if(o[ORG_TYPE] == ORG_TYPE_CONSUMER){
-            if(o[ORG_REFINEDSTOR] > 2){
-                o[ORG_REFINEDSTOR]--;
-                for(var s in o[ORG_RAWSTOR]){
-                    o[ORG_RAWSTOR][s]++;
-                }
-                o[ORG_DIDCONVERT]=true;
-            }
+            if(o[ORG_REFINEDSTOR] <= 0) return;
+            o[ORG_REFINEDSTOR]--;
+            o[ORG_RAWSTOR]++;
+            o[ORG_DIDCONVERT]=true;
         } else alert('UNKNOWN organism TYPE');
     },
     orgExcrete:function(i){
         //TODO Look over and check this.
         var o = this.map[i][MAP_ITEM];
         if(o[ORG_TYPE] == ORG_TYPE_PRODUCER && o[ORG_REFINEDSTOR] > 0){
-            var mat = this.materials[o[ORG_MAT]][MAT_RES];
             var sides = helpers.getSides(i);
             sides.sort(function(){ return .5 - Math.random(); });
             for(var s in sides){
-                if(this.map[sides[s]][MAP_TYPE] == MAP_TYPE_EMPTY || this.map[sides[s]][MAP_TYPE] == MAP_TYPE_RESOURCE){
-                    this.map[sides[s]] = [MAP_TYPE_MATERIAL,o[ORG_MAT]];
+                if(this.map[sides[s]][MAP_TYPE] == MAP_TYPE_EMPTY){
+                    this.map[sides[s]] = [MAP_TYPE_MATERIAL,o[ORG_DESIRE]];
                     if(this.singleRender) this.renderOne(sides[s]);
                     o[ORG_REFINEDSTOR]--;
                     break;
@@ -451,74 +403,57 @@ pond = {
         }
     },
     orgLife:function(i){
-        
         var o = this.map[i][MAP_ITEM];
-        
-        if(o[ORG_DIDCONVERT] || o[ORG_DIDCONSUME]){
+
+        var gain = false;
+        if(o[ORG_TYPE] == ORG_TYPE_PRODUCER && o[ORG_DIDCONVERT]) gain = true;
+        else if(o[ORG_TYPE] == ORG_TYPE_CONSUMER && o[ORG_DIDCONSUME]) gain = true;
+
+        if(gain){
             if(o[ORG_STRENGTH] < o[ORG_ATTR][ORG_ATTR_MAXSTRENGTH]) o[ORG_STRENGTH]+=20;
-        } else {
-            if(o[ORG_STRENGTH] < 20 && o[ORG_STRENGTH] > 0){
-                var sides = helpers.getSides(i);
-                sides.sort(function(){ return 0.5 - Math.random(); });
-                var starved = true;
-                for(var s in sides){
-                    side = sides[s];
-                    if( this.map[side][MAP_TYPE] == MAP_TYPE_ORGANISM &&
-                        this.map[side][MAP_ITEM][ORG_ID] == o[ORG_ID] &&
-                        this.map[side][MAP_ITEM][ORG_STRENGTH] > 30 ){
-                            o[ORG_STRENGTH]++;
-                            this.map[side][MAP_ITEM][ORG_STRENGTH]--;
-                            starved = false;
-                            break;
-                    }
-                }
-                if(starved) o[ORG_STRENGTH]-=2;
+        } else{
+            o[ORG_STRENGTH]-=2;
+        }
+        if(o[ORG_STRENGTH] < 0){
+            var maptype=MAP_TYPE_EMPTY;
+            var mapitem=null;
+            if(o[ORG_TYPE] == ORG_TYPE_PRODUCER && o[ORG_REFINEDSTOR]>0){
+                    maptype=MAP_TYPE_MATERIAL;
             }
-            else if(o[ORG_STRENGTH] < 1) {
-                if(o[ORG_TYPE] == ORG_TYPE_PRODUCER){
-                    if(o[ORG_REFINEDSTOR] > 0)
-                        this.map[i] = [MAP_TYPE_MATERIAL,o[ORG_MAT]];
-                    else
-                        this.map[i] = [MAP_TYPE_EMPTY];
-                }
-                else
-                    this.map[i] = [MAP_TYPE_RESOURCE,this.materials[o[ORG_MAT]][MAT_RES][helpers.bool()?0:1]]
-                if(this.singleRender) this.renderOne(i);
-            } else {
-                o[ORG_STRENGTH]-=2;
+            else if(o[ORG_TYPE] == ORG_TYPE_CONSUMER && o[ORG_RAWSTOR]>0){
+                    maptype=MAP_TYPE_RESOURCE;
             }
+
+            if(maptype == MAP_TYPE_EMPTY) this.map[i]=[MAP_TYPE_EMPTY];
+            else this.map[i]=[maptype,o[ORG_DESIRE]];
         }
     },
     orgReproduce:function(i){
         var o = this.map[i][MAP_ITEM];
-        if(helpers.chance(o[ORG_ATTR][ORG_ATTR_REPOCHANCE]) && o[ORG_STRENGTH] > o[ORG_ATTR][ORG_ATTR_REPOAT]){
-            var sides = helpers.getSides(i);
-            sides.sort(function(){ return .5 - Math.random(); });
-            for(var s in sides){
-                var side = sides[s];
+        if(!helpers.chance(o[ORG_ATTR][ORG_ATTR_REPOCHANCE]) || o[ORG_STRENGTH] < o[ORG_ATTR][ORG_ATTR_REPOAT]) return;
 
-                if(this.map[side][MAP_TYPE] == MAP_TYPE_EMPTY){
-                    var newo = jQuery.extend(true,[],o);
-                    o[ORG_STRENGTH]-=10;
-                    newo[ORG_STRENGTH]-=10;
-                    newo[ORG_RAWSTOR] = [0,0];
-                    newo[ORG_REFINEDSTOR] = 0;
-                    if(helpers.chance(this.mutationChance)){
-                        newo[ORG_ID] = this.org_id_max; this.org_id_max++;
-                        newo[ORG_ATTR][ORG_ATTR_REPOCHANCE]+=Math.floor(Math.random()*3)-1;
-                        newo[ORG_ATTR][ORG_ATTR_MOVECHANCE]+=Math.max(Math.floor(Math.random()*3)-1,1);
-                        newo[ORG_ATTR][ORG_ATTR_REPOAT]+=Math.floor(Math.random()*5)-2;
-                        newo[ORG_ATTR][ORG_ATTR_MAXSTRENGTH]+=Math.floor(Math.random()*9)-4;
-                        if(o[ORG_TYPE]!=ORG_TYPE_CONSUMER) newo[ORG_CL][CL_R]=(newo[ORG_CL][CL_R]+Math.floor(Math.random()*61)-30).mod(200);
-                        if(o[ORG_TYPE]!=ORG_TYPE_PRODUCER) newo[ORG_CL][CL_G]=(newo[ORG_CL][CL_G]+Math.floor(Math.random()*61)-30).mod(200);
-                        newo[ORG_CL][CL_B]=(newo[ORG_CL][CL_B]+Math.floor(Math.random()*61)-30).mod(200);
-                    }
-                    this.map[side] = [MAP_TYPE_ORGANISM, newo];
-                    if(this.singleRender) this.renderOne(side);
-                    break;
-                }
-            }
+        var sides = helpers.getSides(i);
+
+        var possible = [];
+        for(var s in sides) if(this.map[sides[s]][MAP_TYPE] == MAP_TYPE_EMPTY) possible.push(sides[s]);
+        if(possible.length == 0) return;
+        possible.sort(function(){ return 0.5 - Math.random(); });
+        o[ORG_STRENGTH] = Math.ceil(o[ORG_STRENGTH]*0.75);
+        var newo = jQuery.extend(true,[],o);
+        newo[ORG_RAWSTOR] = 0;
+        newo[ORG_REFINEDSTOR] = 0;
+        if(helpers.chance(this.mutationChance)){
+            newo[ORG_ID] = this.org_id_max; this.org_id_max++;
+            newo[ORG_ATTR][ORG_ATTR_REPOCHANCE]+=Math.floor(Math.random()*3)-1;
+            newo[ORG_ATTR][ORG_ATTR_MOVECHANCE]+=Math.max(Math.floor(Math.random()*3)-1,1);
+            newo[ORG_ATTR][ORG_ATTR_REPOAT]+=Math.floor(Math.random()*5)-2;
+            newo[ORG_ATTR][ORG_ATTR_MAXSTRENGTH]+=Math.floor(Math.random()*9)-4;
+            if(o[ORG_TYPE]!=ORG_TYPE_CONSUMER) newo[ORG_CL][CL_R]=(newo[ORG_CL][CL_R]+Math.floor(Math.random()*61)-30).mod(200);
+            if(o[ORG_TYPE]!=ORG_TYPE_PRODUCER) newo[ORG_CL][CL_G]=(newo[ORG_CL][CL_G]+Math.floor(Math.random()*61)-30).mod(200);
+            newo[ORG_CL][CL_B]=(newo[ORG_CL][CL_B]+Math.floor(Math.random()*61)-30).mod(200);
         }
+        this.map[possible[0]] = [MAP_TYPE_ORGANISM, newo];
+        if(this.singleRender) this.renderOne(possible[0]);
     },
     render:function(){
         for(var i=0;i<this.total;i++){
@@ -528,17 +463,17 @@ pond = {
         gameLoopFrame();
     },
     renderOne:function(i){
-        switch(this.map[i][0]){
-            case 0:
+        switch(this.map[i][MAP_TYPE]){
+            case MAP_TYPE_EMPTY:
                 draw.point(i,BG_COLOR[CL_R],BG_COLOR[CL_G],BG_COLOR[CL_B]);
                 break;
-            case 1:
+            case MAP_TYPE_RESOURCE:
                 var color = this.resources[this.map[i][MAP_ITEM]];
                 draw.point(i,color[CL_R],color[CL_G],color[CL_B])
                 break;
-            case 2:
-                var color = this.materials[this.map[i][MAP_ITEM]][MAT_CL];
-                draw.point(i,color[CL_R],color[CL_G],color[CL_B]);
+            case MAP_TYPE_MATERIAL:
+                var color = this.materials[this.map[i][MAP_ITEM]];
+                draw.point(i,color[CL_R],color[CL_G],color[CL_B])
                 break;
             case 3:
                 var color = this.map[i][MAP_ITEM][ORG_CL];
@@ -577,22 +512,22 @@ pond = {
         var o = [];
         o[ORG_ID] = this.org_id_max; this.org_id_max++;
         o[ORG_TYPE] = type;
-        o[ORG_MAT] = this.giveRandomMaterial();
+        o[ORG_DESIRE] = o[ORG_TYPE]==ORG_TYPE_PRODUCER?this.giveRandomResource():this.giveRandomMaterial();
         if(o[ORG_TYPE] == ORG_TYPE_PRODUCER){
             o[ORG_CL] = [51,255,51];
         } else {
             o[ORG_CL] = [255,51,51]
         }
-        o[ORG_RAWSTOR] = [0,0];
+        o[ORG_RAWSTOR] = 0;
         o[ORG_REFINEDSTOR] = 0;
         o[ORG_STRENGTH] = 50;
         o[ORG_DIDCONSUME] = false;
         o[ORG_DEMEANOR] = helpers.bool()?ORG_DEMEANOR_HELPFUL:ORG_DEMEANOR_PASSIVE;
         o[ORG_ATTR] = [];
-        o[ORG_ATTR][ORG_ATTR_REPOCHANCE] = 3;
-        o[ORG_ATTR][ORG_ATTR_REPOAT] = o[ORG_TYPE]==ORG_TYPE_PRODUCER?80:140;
+        o[ORG_ATTR][ORG_ATTR_REPOCHANCE] = 2;
+        o[ORG_ATTR][ORG_ATTR_REPOAT] = 80;
         o[ORG_ATTR][ORG_ATTR_MAXSTRENGTH] = 200;
-        o[ORG_ATTR][ORG_ATTR_MOVECHANCE] = o[ORG_TYPE]==ORG_TYPE_PRODUCER?this.plantStartMoveChance:2;
+        o[ORG_ATTR][ORG_ATTR_MOVECHANCE] = 2;
         return o;
     },
 

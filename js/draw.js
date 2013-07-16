@@ -130,11 +130,13 @@ Filters.convolute = function(pixels, weights, opaque) {
   return output;
 };
 
+var f19 = 1/9;
+
 Filters.blur = function(pixels){
     return this.convolute(pixels,
-      [ 1/9, 1/9, 1/9,
-        1/9, 1/9, 1/9,
-        1/9, 1/9, 1/9 ]
+      [ f19, f19, f19,
+        f19, f19, f19,
+        f19, f19, f19 ]
     );
 }
 
@@ -148,9 +150,9 @@ Filters.sharpen = function(pixels){
 
 Filters.smooth = function(pixels){
     return this.convolute(pixels,
-      [ 1/9, 1/9, 1/9, 1/9,
-        1/9, 1/9, 1/9, 1/9,
-        1/9, 1/9, 1/9, 1/9,
-        1/9, 1/9, 1/9, 1/9 ]
+      [ f19, f19, f19, f19,
+        f19, f19, f19, f19,
+        f19, f19, f19, f19,
+        f19, f19, f19, f19 ]
     );
 }
