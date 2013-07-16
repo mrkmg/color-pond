@@ -1,14 +1,3 @@
-/**NOTES
- *  pond map 2d xy array of 2element array
- *      0 is type: 0 = empty,1 = resource, 2 = material, 3 = organism
- *      1 is offset of item
- *
- * organism array
- *      0 is type: 0:producer,1:consumer
- *      1 is material
- *       2 is colorarray
- *
- */
 //DEFINES
 
 CL_R = 0;
@@ -258,9 +247,13 @@ pond = {
 
         var cxy = helpers.indexToCart(i);
         var domove = false;
-        var checker = function(a){
-            return pond.map[a][MAP_TYPE] == (o[ORG_TYPE]==ORG_TYPE_PRODUCER?MAP_TYPE_RESOURCE:MAP_TYPE_MATERIAL) && o[ORG_DESIRE] == pond.map[a][MAP_ITEM];
+        if(o[ORG_TYPE] == ORG_TYPE_PRODUCER){
+            if(o[ORG_DIDCONVERT]) var checker = function(a){ return (pond.map[a][MAP_TYPE] == MAP_TYPE_ORGANISM && o[ORG_ID] == pond.map[a][MAP_ITEM][ORG_ID]); }
+            else var checker = function(a){ return (pond.map[a][MAP_TYPE] == MAP_TYPE_RESOURCE && o[ORG_DESIRE] == pond.map[a][MAP_ITEM]); }
+        } else {
+            var checker = function(a){ return (pond.map[a][MAP_TYPE] == MAP_TYPE_MATERIAL && o[ORG_DESIRE] == pond.map[a][MAP_ITEM]); }
         }
+
         for(var d=1;d<10;d++){
             //l
                 var ci = helpers.getRelative(i,0,d);
