@@ -1,4 +1,61 @@
-//DEFINES
+self.addEventListener('message', function(e) {
+  var data = e.data.data;
+  switch (e.data.cmd) {
+    case 'seed':
+        Math.seedrandom(data.seed);
+    case 'init':
+        pond.init(data.width,data.height);
+        break;
+    case 'setOption':
+        pond[data.option] = data.value;
+        break;
+    case 'getOption':
+        report('type',{option:data,value:pond[data]});
+        break;
+    case 'cmap':
+        report('cmap',pond.rendering);
+        break;
+    case 'start':
+        start();
+        break;
+    case 'stop':
+        stop();
+        break;
+    case 'die':
+        self.close();
+        break;
+    default:
+      report('error','unknown command');
+  };
+}, false);
+
+function report(type,value){
+    self.postMessage({type:type,value:value});
+}
+
+var stepTO = null;
+
+var toTime = 10;
+
+running = false;
+
+function runStep(){
+    if(!running) return;
+    pond.step();
+    var stepTO = setTimeout(runStep,pond.stepWait)
+};
+
+function start(){
+    running=true;
+    runStep();
+}
+
+function stop(){
+    running=false;
+}
+
+
+
 
 CL_R = 0;
 CL_G = 1;
@@ -47,29 +104,11 @@ Number.prototype.mod = function(n) { return ((this%n)+n)%n; }
 var TPS_filterStrength = 5;
 var TPS_frameTime = 0, TPS_lastLoop = new Date, TPS_thisLoop;
 
-var FPS_filterStrength = 5;
-var FPS_frameTime = 0, FPS_lastLoop = new Date, FPS_thisLoop;
-
 function gameLoopTick(){
   var TPS_thisFrameTime = (TPS_thisLoop=new Date) - TPS_lastLoop;
   TPS_frameTime+= (TPS_thisFrameTime - TPS_frameTime) / TPS_filterStrength;
   TPS_lastLoop = TPS_thisLoop;
 }
-
-function gameLoopFrame(){
-  var FPS_thisFrameTime = (FPS_thisLoop=new Date) - FPS_lastLoop;
-  FPS_frameTime+= (FPS_thisFrameTime - FPS_frameTime) / FPS_filterStrength;
-  FPS_lastLoop = FPS_thisLoop;
-}
-
-// Report the fps only every second, to only lightly affect measurements
-$(document).ready(function(){
-    var tpsOut = document.getElementById('fps');
-    setInterval(function(){
-      tpsOut.innerHTML = (1000/TPS_frameTime).toFixed(1) + " tps<br />"+
-                         (1000/FPS_frameTime).toFixed(1) + " fps<br />Tick: "+global_tick;
-    },1000);
-});
 
 global_tick = 0;
 
@@ -77,6 +116,7 @@ Colors:[]; //TODO, populate with "pretty" colors
 
 pond = {
     //variables
+    stepWait:10,
     cellWall:true,
     mutationChance:20,
     flowChance:2,
@@ -101,9 +141,10 @@ pond = {
     ],
 
     //functions
-    init:function(){
-        draw.init(this.width,this.height);
-        helpers.init(this.width,this.height);
+    init:function(width,height){
+        helpers.init(width,height);
+        this.width = width;
+        this.height = height;
         this.org_id_max = 0;
         //fill resourcesNames
         for(var i in this.resources) if (this.resources.hasOwnProperty(i))
@@ -132,32 +173,12 @@ pond = {
             }
         }
 
-        _lastmousex = -1;
-        _lastmousey = -1;
-        $(draw.pond).mousemove(function(ev){
-            var x = Math.floor((ev.offsetX-5)/draw.scale);
-            var y = Math.floor((ev.offsetY-5)/draw.scale);
-            if(x != _lastmousex || y != _lastmousey){
-                    _lastmousex = x;
-                    _lastmousey = y;
-                    var mapo = pond.map[parseInt(helpers.cartToIndex(x,y))];
-                    $('#info').text(JSON.stringify(mapo));
-            }
-        });
         global_tick = 0;
 
         for(var i=0;i<50;i++){
             this.map[Math.floor(Math.random()*this.total)] = [MAP_TYPE_ORGANISM,this.makeRandomOrganism(ORG_TYPE_PRODUCER)];
             this.map[Math.floor(Math.random()*this.total)] = [MAP_TYPE_ORGANISM,this.makeRandomOrganism(ORG_TYPE_CONSUMER)];
         }
-        $("#pond").click(function(){
-            console.log('test');
-            for(var i=0;i<50;i++){
-                pond.map[Math.floor(Math.random()*pond.total)] = [MAP_TYPE_ORGANISM,pond.makeRandomOrganism(ORG_TYPE_PRODUCER)];
-                pond.map[Math.floor(Math.random()*pond.total)] = [MAP_TYPE_ORGANISM,pond.makeRandomOrganism(ORG_TYPE_CONSUMER)];
-            }
-        });
-
     },
     step:function(){
         gameLoopTick();
@@ -168,9 +189,7 @@ pond = {
         this.insertRandomLife();
         this.processMap();
         this.processOrgs();
-        if(!this.singleRender && global_tick.mod(this.bulkOdd)==0){
-            this.render();
-        }
+        return this.render();
     },
     insertRandomLife:function(){
         //TODO implement a threshold for life generation
@@ -243,7 +262,7 @@ pond = {
     },
     orgMove:function(i){
         var o = this.map[i][MAP_ITEM];
-        if(o[ORG_TYPE] == ORG_TYPE_PRODUCER && (o[ORG_DIDCONVERT] || !helpers.chance(o[ORG_ATTR][ORG_ATTR_MOVECHANCE]))) return i;
+        if(o[ORG_TYPE] == ORG_TYPE_PRODUCER && !helpers.chance(o[ORG_ATTR][ORG_ATTR_MOVECHANCE])) return i;
 
         var cxy = helpers.indexToCart(i);
         var domove = false;
@@ -432,7 +451,7 @@ pond = {
         if(possible.length == 0) return;
         possible.sort(function(){ return 0.5 - Math.random(); });
         o[ORG_STRENGTH] = Math.ceil(o[ORG_STRENGTH]*0.75);
-        var newo = jQuery.extend(true,[],o);
+        var newo = deepCopy(o);
         newo[ORG_RAWSTOR] = 0;
         newo[ORG_REFINEDSTOR] = 0;
         if(helpers.chance(this.mutationChance)){
@@ -449,31 +468,32 @@ pond = {
         if(this.singleRender) this.renderOne(possible[0]);
     },
     render:function(){
+        //this.rendering = new ArrayBuffer(this.total*5);
+        var colormap = [];
         for(var i=0;i<this.total;i++){
-            this.renderOne(i);
+            colormap.push(this.renderOne(i));
         }
-        draw.render();
-        gameLoopFrame();
+        this.rendering = colormap;
     },
     renderOne:function(i){
         switch(this.map[i][MAP_TYPE]){
             case MAP_TYPE_EMPTY:
-                draw.point(i,BG_COLOR[CL_R],BG_COLOR[CL_G],BG_COLOR[CL_B]);
+                return [i,BG_COLOR[CL_R],BG_COLOR[CL_G],BG_COLOR[CL_B],0];
                 break;
             case MAP_TYPE_RESOURCE:
                 var color = this.resources[this.map[i][MAP_ITEM]];
-                draw.point(i,color[CL_R],color[CL_G],color[CL_B])
+                return [i,color[CL_R],color[CL_G],color[CL_B],0];
                 break;
             case MAP_TYPE_MATERIAL:
                 var color = this.materials[this.map[i][MAP_ITEM]];
-                draw.point(i,color[CL_R],color[CL_G],color[CL_B])
+                return [i,color[CL_R],color[CL_G],color[CL_B]],0;
                 break;
-            case 3:
+            case MAP_TYPE_ORGANISM:
                 var color = this.map[i][MAP_ITEM][ORG_CL];
                 if(this.cellWall)
-                    draw.pointStroke(i,color[CL_R],color[CL_G],color[CL_B],'black');
+                    return [i,color[CL_R],color[CL_G],color[CL_B],1];
                 else
-                    draw.point(i,color[CL_R],color[CL_G],color[CL_B]);
+                    return [i,color[CL_R],color[CL_G],color[CL_B],1];
                 break;
         }
     },
@@ -531,8 +551,11 @@ pond = {
     materialsNames:[],
     map:[],
     currents:[],
-    lists:[]
+    lists:[],
+    rendering:[]
 }
+
+
 
 
 helpers = {
@@ -623,8 +646,9 @@ helpers = {
 /**
  * All code is in an anonymous closure to keep the global namespace clean.
  */
-(function (
-    global, pool, math, width, chunks, digits) {
+
+var global = {}, pool = [], math=Math, width = 256, chunks = 6, digits = 62;
+
 
 //
 // The following constants are related to IEEE 754 limits.
@@ -781,12 +805,22 @@ function tostring(a) {
 //
 mixkey(math.random(), pool);
 
-// End anonymous scope, and pass initial values.
-})(
-  this,   // global window object
-  [],     // pool: entropy pool starts empty
-  Math,   // math: package containing random, pow, and seedrandom
-  256,    // width: each RC4 output is 0 <= x < 256
-  6,      // chunks: at least six RC4 outputs for each double
-  52      // digits: there are 52 significant digits in a double
-);
+
+
+function deepCopy(obj) {
+    if (Object.prototype.toString.call(obj) === '[object Array]') {
+        var out = [], i = 0, len = obj.length;
+        for ( ; i < len; i++ ) {
+            out[i] = arguments.callee(obj[i]);
+        }
+        return out;
+    }
+    if (typeof obj === 'object') {
+        var out = {}, i;
+        for ( i in obj ) {
+            out[i] = arguments.callee(obj[i]);
+        }
+        return out;
+    }
+    return obj;
+}

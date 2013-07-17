@@ -6,8 +6,6 @@
     <link rel="stylesheet" type="text/css" href="css/index.css">
 
     <script src="http://code.jquery.com/jquery-1.10.1.min.js"></script>
-    <script src="js/randomseed.js"></script>
-    <script src="js/pond.js"></script>
     <script src="js/draw.js"></script>
     <script src="js/helpers.js"></script>
 
@@ -20,36 +18,166 @@
         <canvas id="pond" class="no_initial"></canvas>
         <div id="options">
             <div id="init" class="intial_only">
-                <span class="item">Width: <input type="number" id="width" value="125"  min="1" max="9999" /></span>
-                <span class="item">Height: <input type="number" id="height" value="125" min="1" max="9999" /></span>
-                <span class="item">Total Area: <span id="totalarea"></span>
-                <span class="item">Best Fit? <input type="checkbox" id="bestfit" checked="checked" /></span>
-                <span class="item">Seed: <input type="text" style="width:50px;" id="seed" /><br>
+                <span class="item"><span class="label">Width:</span><input type="number" id="width" value="125"  min="1" max="9999" /></span>
+                <span class="item"><span class="label">Height:</span><input type="number" id="height" value="125" min="1" max="9999" /></span>
+                <span class="item"><span class="label">Total Area:</span><span id="totalarea"></span>
+                <span class="item"><span class="label">Best Fit? </span><input type="checkbox" id="bestfit" checked="checked" /></span>
+                <span class="item"><span class="label">Seed:</span><input type="text" style="width:50px;" id="seed" /><br>
                     <span style="font-size:10px;">(leave blank for random)</span></span>
                 <button id="doinit">Go</button>
             </div>
             <span class="item no_initial"><button id="pauserun">Pause/Run</button></span>
-            <span class="item">Update Rate: 1/<input id="bulkrate" type="number" min="1" max="100" /></span>
-            <span class="item">Tick Wait: <input id="speed" type="number" min="10" max="5000" /></span>
-            <span class="item">Filter: <select id="filter">
+            <span class="item"><span class="label">Update Rate:</span><input id="bulkOdd" type="number" min="1" max="100" /></span>
+            <span class="item"><span class="label">Tick Wait:</span><input id="stepWait" type="number" min="10" max="5000" /></span>
+            <span class="item"><span class="label">Filter:</span><select id="filter">
               <option value="none">None</option>
               <option value="sharpen" selected>Sharpen</option>
               <option value="blur">Blur</option>
               <option value="smooth">Neon Smooth</option>
             </select></span>
-            <span class="item">Flow %: 1/<input id="flow" type="number" min="1" max="50" /></span>
-            <span class="item">P Spawn %: 1/<input id="pro_life" type="number" min="1" max="500" /></span>
-            <span class="item">C Spawn %: 1/<input id="con_life" type="number" min="1" max="500" /></span>
-            <span class="item">Mutation %: 1/<input id="mutation" type="number" min="1" max="500" /></span>
-            <span class="item">R Spawn %: 1/<input id="resourcespawn" type="number" min="1" max="500" /></span>
-            <span class="item">Goal R %: /<input id="goalresouce" type="number" min="1" max="500" /></span>
-            <span class="item">P Move %: /<input id="plantStartMoveChance" type="number" min="1" max="500" /></span>
-            <span class="item">Cell Wall: <input id="cellwall" type="checkbox" /></span>
+            <span class="item"><span class="label">Flow Ch:</span><input id="flowChance" type="number" min="1" max="50" /></span>
+            <span class="item"><span class="label">P Spawn Ch:</span><input id="producerSpawnChance" type="number" min="1" max="500" /></span>
+            <span class="item"><span class="label">C Spawn Ch:</span><input id="consumerSpawnChance" type="number" min="1" max="500" /></span>
+            <span class="item"><span class="label">Mutation Ch:</span><input id="mutationChance" type="number" min="1" max="500" /></span>
+            <span class="item"><span class="label">R Spawn Ch:</span><input id="resourceSpawnChance" type="number" min="1" max="500" /></span>
+            <span class="item"><span class="label">Goal R %:/</span><input id="resouceThreshold" type="number" min="1" max="500" /></span>
+            <span class="item"><span class="label">P Move Ch:/</span><input id="plantStartMoveChance" type="number" min="1" max="500" /></span>
+            <span class="item"><span class="label">Cell Wall:</span><input id="cellwall" type="checkbox" /></span>
             <div id="info"></div>
         </div>
     </div>
     <script>
+    var worker = new Worker('js/wk_pond.js');
+    function request(cmd,data){
+        worker.postMessage({cmd:cmd,data:data});
+    }
     $(document).ready(function(){
+        $('.no_initial').hide();
+
+        var a = [[1,2,3,4,5],['1',1,4,2,5]];
+
+        worker.addEventListener('message',function(e){
+            var value = e.data.value;
+            switch(e.data.type){
+                case 'cmap':
+                    if(!rendering) return;
+                    rendering = true;
+                    for(var i in value){
+                        draw.pointStroke(value[i][0],value[i][1],value[i][2],value[i][3],0);
+                    }
+                    setTimeout(function(){ request('cmap'); },10);
+                    break;
+                case 'type':
+                    $('#'+value.option).val(value.value)
+                    break;
+                case 'time':
+                    var a =  new Date().getTime();
+                    console.log(a);
+                    break;
+                case 'log':
+                case 'error':
+                    console.log(value);
+                    break;
+                default:
+                    console.log(e.data);
+                    break;
+            }
+        });
+
+        var rendering = false;
+
+        
+
+        function start(){
+            rendering = true;
+            request('start');
+            request('cmap');
+        }
+
+        function stop(){
+            rendering = false;
+            request('stop');
+        }
+
+        request('getOption','flowChance');
+        request('getOption','producerSpawnChance');
+        request('getOption','consumerSpawnChance');
+        request('getOption','mutationChance');
+        request('getOption','resourceSpawnChance');
+        request('getOption','resouceThreshold');
+        request('getOption','plantStartMoveChance');
+        request('getOption','bulkOdd');
+        request('getOption','stepWait');
+
+        $('#filter').val(draw.filter);
+        $('#filter').change(function(ev){
+            draw.filter = $(this).val();
+        });
+
+        var screenX = $('html').width()-350;
+        var screenY = $('html').height()-150;
+
+        var ideal = 15625;
+        if(screenX > screenY){
+            var s1 = Math.round((screenX/screenY)*100)/100;
+            var s2 = Math.floor(ideal/s1);
+            var s3 = Math.floor(Math.sqrt(s2));
+            var dx = Math.floor(s1*s3);
+            var dy = s3;
+        } else {
+            var s1 = Math.round((screenY/screenX)*100)/100;
+            var s2 = Math.floor(ideal/s1);
+            var s3 = Math.floor(Math.sqrt(s2));
+            var dy = Math.floor(s1*s3);
+            var dx = s3;
+        }
+
+        $('#width').val(dx);
+        $('#height').val(dy);
+
+        $('#totalarea').text(parseInt($('#height').val())*parseInt($('#width').val()));
+
+        var bestfit = true;
+
+        $('#bestfit').click(function(){
+            bestfit = !bestfit;
+            if(bestfit) $(this).attr('checked','checked');
+            else       $(this).removeAttr('checked');
+        });
+
+        $('#height').change(function(){
+            if(bestfit){
+                $('#width').val(Math.floor(dx*(parseInt($(this).val())/dy)));
+            }
+            $('#totalarea').text(parseInt($('#height').val())*parseInt($('#width').val()));
+        });
+        $('#width').change(function(){
+            if(bestfit){
+                $('#height').val(Math.floor(dy*(parseInt($(this).val())/dx)));
+            }
+            $('#totalarea').text(parseInt($('#height').val())*parseInt($('#width').val()));
+        });
+
+        $('#flowChance, #producerSpawnChance, #consumerSpawnChance, #mutationChance, #resourceSpawnChance, #resouceThreshold, #plantStartMoveChance, #bulkOdd, #stepWait').change(function(){
+            var id = $(this).attr('id');
+            request('setOption',{option:id,value:$(this).val()});
+        });
+        
+
+        $('#doinit').click(function(){
+            request('seed',$('#seed').val()==''?undefined:$('#seed').val());
+            width = parseInt($('#width').val());
+            height = parseInt($('#height').val());
+            request('init',{width:width,height:height});
+            draw.init(width,height);
+            helpers.init(width,height);
+            $('#pondHolder').width(250 + $('#pond').width());
+            $('.no_initial').show();
+            $('.intial_only').hide();
+            start();
+        });
+
+        /*
         $('#doinit').click(function(){
             if($('#seed').val() == '') Math.seedrandom();
             else Math.seedrandom($('#seed').val());
@@ -128,7 +256,6 @@
         $('#speed').val(tick);
         $('#flow').val(pond.flowChance);
         $('#mutation').val(pond.mutationChance);
-        $('#filter').val(draw.filter);
         $('#pro_life').val(pond.producerSpawnChance);
         $('#con_life').val(pond.consumerSpawnChance);
         $('#resourcespawn').val(pond.resourceSpawnChance);
@@ -139,50 +266,12 @@
             $('#cellwall').attr('checked','checked');
         }
 
+        */
 
-        var screenX = $('html').width()-350;
-        var screenY = $('html').height()-150;
 
-        var ideal = 15625;
-        if(screenX > screenY){
-            var s1 = Math.round((screenX/screenY)*100)/100;
-            var s2 = Math.floor(ideal/s1);
-            var s3 = Math.floor(Math.sqrt(s2));
-            var dx = Math.floor(s1*s3);
-            var dy = s3;
-        } else {
-            var s1 = Math.round((screenY/screenX)*100)/100;
-            var s2 = Math.floor(ideal/s1);
-            var s3 = Math.floor(Math.sqrt(s2));
-            var dy = Math.floor(s1*s3);
-            var dx = s3;
-        }
+       
 
-        $('#width').val(dx);
-        $('#height').val(dy);
 
-        $('#totalarea').text(parseInt($('#height').val())*parseInt($('#width').val()));
-
-        var bestfit = true;
-
-        $('#bestfit').click(function(){
-            bestfit = !bestfit;
-            if(bestfit) $(this).attr('checked','checked');
-            else       $(this).removeAttr('checked');
-        });
-
-        $('#height').change(function(){
-            if(bestfit){
-                $('#width').val(Math.floor(dx*(parseInt($(this).val())/dy)));
-            }
-            $('#totalarea').text(parseInt($('#height').val())*parseInt($('#width').val()));
-        });
-        $('#width').change(function(){
-            if(bestfit){
-                $('#height').val(Math.floor(dy*(parseInt($(this).val())/dx)));
-            }
-            $('#totalarea').text(parseInt($('#height').val())*parseInt($('#width').val()));
-        });
     });
 </script>
 </body>

@@ -1,3 +1,13 @@
+
+var FPS_filterStrength = 5;
+var FPS_frameTime = 0, FPS_lastLoop = new Date, FPS_thisLoop;
+
+function gameLoopFrame(){
+  var FPS_thisFrameTime = (FPS_thisLoop=new Date) - FPS_lastLoop;
+  FPS_frameTime+= (FPS_thisFrameTime - FPS_frameTime) / FPS_filterStrength;
+  FPS_lastLoop = FPS_thisLoop;
+}
+
 draw = {
     //variables
     scale:5,
@@ -31,7 +41,8 @@ draw = {
         this.pondCtx.fill();
     },
     pointStroke:function(i, r, g, b, s){
-        this.point(i, r, g, b,1)
+        this.point(i, r, g, b,s);
+        if(s == 0) return;
         this.pondCtx.lineWidth = 2;
         this.pondCtx.strokeStyle = s;
         this.pondCtx.stroke();
