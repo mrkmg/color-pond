@@ -7,12 +7,12 @@ self.addEventListener('message', function(e) {
   var data = e.data.data;
   switch (e.data.cmd) {
     case 'seed':
-        Math.seedrandom(data.seed);
+        Math.seedrandom(data);
     case 'init':
         pond.init(data.width,data.height);
         break;
     case 'setOption':
-        pond[data.option] = data.value;
+        pond[data.option] = parseInt(data.value);
         break;
     case 'getOption':
         report('type',{option:data,value:pond[data]});
@@ -87,6 +87,7 @@ ORG_DIDCONVERT =      10;
 
     ORG_TYPE_PRODUCER =         0;
     ORG_TYPE_CONSUMER =         1;
+    ORG_TYPE_CARNIVOR =         3;
 
     ORG_DEMEANOR_HELPFUL =      0;
     ORG_DEMEANOR_PASSIVE =      1;
@@ -122,15 +123,15 @@ Colors:[]; //TODO, populate with "pretty" colors
 pond = {
     //variables
     stepWait:10,
-    cellWall:true,
+    cellWall:1,
     mutationChance:20,
-    flowChance:2,
-    producerSpawnChance:20,
-    consumerSpawnChance:10,
-    resouceThreshold:30,
+    flowChance:1,
+    producerSpawnChance:50,
+    consumerSpawnChance:50,
+    resouceThreshold:60,
     singleRender:false,
-    resourceSpawnChance:40,
-    plantStartMoveChance:15,
+    resourceSpawnChance:120,
+    plantStartMoveChance:80,
     bulkOdd:1,
     width:5,
     height:5,
@@ -180,10 +181,10 @@ pond = {
 
         global_tick = 0;
 
-        for(var i=0;i<50;i++){
-            this.map[Math.floor(Math.random()*this.total)] = [MAP_TYPE_ORGANISM,this.makeRandomOrganism(ORG_TYPE_PRODUCER)];
-            this.map[Math.floor(Math.random()*this.total)] = [MAP_TYPE_ORGANISM,this.makeRandomOrganism(ORG_TYPE_CONSUMER)];
-        }
+        // for(var i=0;i<50;i++){
+        //     this.map[Math.floor(Math.random()*this.total)] = [MAP_TYPE_ORGANISM,this.makeRandomOrganism(ORG_TYPE_PRODUCER)];
+        //     this.map[Math.floor(Math.random()*this.total)] = [MAP_TYPE_ORGANISM,this.makeRandomOrganism(ORG_TYPE_CONSUMER)];
+        // }
     },
     step:function(){
         gameLoopTick();
@@ -198,7 +199,7 @@ pond = {
     },
     insertRandomLife:function(){
         //TODO implement a threshold for life generation
-        /*if(helpers.chance(this.producerSpawnChance)){
+        if(helpers.chance(this.producerSpawnChance)){
             var spot = Math.floor(Math.random()*this.total);
             this.map[spot] = [MAP_TYPE_ORGANISM,this.makeRandomOrganism(ORG_TYPE_PRODUCER)];
             if(this.singleRender) this.renderOne(spot);
@@ -207,7 +208,7 @@ pond = {
             var spot = Math.floor(Math.random()*this.total);
             this.map[spot] = [MAP_TYPE_ORGANISM,this.makeRandomOrganism(ORG_TYPE_CONSUMER)];
             if(this.singleRender) this.renderOne(spot);
-        }*/
+        }
     },
     flowResMats:function(){
         var listr = this.lists[MAP_TYPE_RESOURCE].slice(0);
@@ -219,12 +220,12 @@ pond = {
             var i = list[l];
             var sides = helpers.getSides(i);
             var matches = 0;
-            for(var s in sides){
-                var side = sides[s];
-                if(this.map[i][MAP_TYPE] == this.map[side][MAP_TYPE] &&
-                   this.map[i][MAP_ITEM] == this.map[side][MAP_ITEM]) matches++;
-            }
-            if(!helpers.chance(matches*4)) continue;
+            // for(var s in sides){
+            //     var side = sides[s];
+            //     if(this.map[i][MAP_TYPE] == this.map[side][MAP_TYPE] &&
+            //        this.map[i][MAP_ITEM] == this.map[side][MAP_ITEM]) matches++;
+            // }
+            // if(!helpers.chance(matches*4)) continue;
             var d = Math.floor(Math.random()*4);
             if(this.map[sides[d]][MAP_TYPE] == MAP_TYPE_ORGANISM) continue;
             var c = this.map[i];
@@ -267,18 +268,27 @@ pond = {
     },
     orgMove:function(i){
         var o = this.map[i][MAP_ITEM];
+        if(o[ORG_TYPE] == ORG_TYPE_PRODUCER) return i;
         if(o[ORG_TYPE] == ORG_TYPE_PRODUCER && !helpers.chance(o[ORG_ATTR][ORG_ATTR_MOVECHANCE])) return i;
 
         var cxy = helpers.indexToCart(i);
         var domove = false;
         if(o[ORG_TYPE] == ORG_TYPE_PRODUCER){
-            if(o[ORG_DIDCONVERT]) var checker = function(a){ return (pond.map[a][MAP_TYPE] == MAP_TYPE_ORGANISM && o[ORG_ID] == pond.map[a][MAP_ITEM][ORG_ID]); }
-            else var checker = function(a){ return (pond.map[a][MAP_TYPE] == MAP_TYPE_RESOURCE && o[ORG_DESIRE] == pond.map[a][MAP_ITEM]); }
+            if(o[ORG_DIDCONVERT]){
+                var sides = helpers.getSides(i);
+                for(var s in sides) if(this.map[s][MAP_TYPE] == MAP_TYPE_ORGANISM && this.map[s][MAP_ITEM][ORG_ID] == o[ORG_ID]) return i;
+                var checker = function(a){ return (pond.map[a][MAP_TYPE] == MAP_TYPE_ORGANISM && o[ORG_ID] == pond.map[a][MAP_ITEM][ORG_ID]); }
+            }
+            else{
+                var checker = function(a){ return
+                    (pond.map[a][MAP_TYPE] == MAP_TYPE_RESOURCE && o[ORG_DESIRE] == pond.map[a][MAP_ITEM]) ||
+                    (pond.map[a][MAP_TYPE] == MAP_TYPE_ORGANISM && o[ORG_ID] == pond.map[a][MAP_ITEM][ORG_ID] && o[ORG_RAWSTOR] > 0); }
+            }
         } else {
             var checker = function(a){ return (pond.map[a][MAP_TYPE] == MAP_TYPE_MATERIAL && o[ORG_DESIRE] == pond.map[a][MAP_ITEM]); }
         }
 
-        for(var d=1;d<10;d++){
+        for(var d=1;d<8;d++){
             //l
                 var ci = helpers.getRelative(i,0,d);
                 if(checker(ci)){ domove = true; var moved = 0;}
@@ -342,7 +352,7 @@ pond = {
                 var side = sides[s];
                 if(this.map[side][MAP_TYPE] != MAP_TYPE_RESOURCE || o[ORG_DESIRE] != this.map[side][MAP_ITEM]) continue;
                 this.map[side] = [MAP_TYPE_EMPTY];
-                o[ORG_RAWSTOR]++;
+                o[ORG_RAWSTOR]+=5;
                 o[ORG_DIDCONSUME] = true;
             }
         } else if(o[ORG_TYPE] == ORG_TYPE_CONSUMER){
@@ -384,9 +394,10 @@ pond = {
         }
     },
     orgShare:function(o,so){
-        if(o[ORG_TYPE] != ORG_TYPE_PRODUCER || o[ORG_ID] != i[ORG_ID] || o[ORG_RAWSTOR] > so[ORG_RAWSTOR]+1) return;
-        o[ORG_RAWSTOR]--;
-        so[ORG_RAWSTOR]--;
+        if(o[ORG_TYPE] != ORG_TYPE_PRODUCER || o[ORG_ID] != i[ORG_ID] || o[ORG_RAWSTOR] < so[ORG_RAWSTOR]+1) return;
+        o[ORG_RAWSTOR]+=2;
+        so[ORG_RAWSTOR]-=2;
+
     },
     orgProduce:function(i){
         //TODO look over and improve
@@ -394,7 +405,7 @@ pond = {
         if(o[ORG_TYPE] == ORG_TYPE_PRODUCER){
             if(o[ORG_RAWSTOR] <= 0) return;
             o[ORG_RAWSTOR]--;
-            o[ORG_REFINEDSTOR]++;
+            o[ORG_REFINEDSTOR]+=.2;
             o[ORG_DIDCONVERT]=true;
         } else if(o[ORG_TYPE] == ORG_TYPE_CONSUMER){
             if(o[ORG_REFINEDSTOR] <= 0) return;
@@ -412,7 +423,6 @@ pond = {
             for(var s in sides){
                 if(this.map[sides[s]][MAP_TYPE] == MAP_TYPE_EMPTY){
                     this.map[sides[s]] = [MAP_TYPE_MATERIAL,o[ORG_DESIRE]];
-                    if(this.singleRender) this.renderOne(sides[s]);
                     o[ORG_REFINEDSTOR]--;
                     break;
                 }
@@ -427,9 +437,9 @@ pond = {
         else if(o[ORG_TYPE] == ORG_TYPE_CONSUMER && o[ORG_DIDCONSUME]) gain = true;
 
         if(gain){
-            if(o[ORG_STRENGTH] < o[ORG_ATTR][ORG_ATTR_MAXSTRENGTH]) o[ORG_STRENGTH]+=20;
+            if(o[ORG_STRENGTH] < o[ORG_ATTR][ORG_ATTR_MAXSTRENGTH]) o[ORG_STRENGTH]+=10;
         } else{
-            o[ORG_STRENGTH]-=2;
+            o[ORG_STRENGTH]-=1;
         }
         if(o[ORG_STRENGTH] < 0){
             var maptype=MAP_TYPE_EMPTY;
@@ -455,10 +465,10 @@ pond = {
         for(var s in sides) if(this.map[sides[s]][MAP_TYPE] == MAP_TYPE_EMPTY) possible.push(sides[s]);
         if(possible.length == 0) return;
         possible.sort(function(){ return 0.5 - Math.random(); });
-        o[ORG_STRENGTH] = Math.ceil(o[ORG_STRENGTH]*0.75);
+        o[ORG_STRENGTH] = Math.ceil(o[ORG_STRENGTH]*0.5);
+        o[ORG_RAWSTOR] = Math.floor(o[ORG_RAWSTOR]/2);
+        o[ORG_REFINEDSTOR] = Math.floor(o[ORG_REFINEDSTOR]/2);
         var newo = deepCopy(o);
-        newo[ORG_RAWSTOR] = 0;
-        newo[ORG_REFINEDSTOR] = 0;
         if(helpers.chance(this.mutationChance)){
             newo[ORG_ID] = this.org_id_max; this.org_id_max++;
             newo[ORG_ATTR][ORG_ATTR_REPOCHANCE]+=Math.floor(Math.random()*3)-1;
@@ -476,29 +486,26 @@ pond = {
         //this.rendering = new ArrayBuffer(this.total*5);
         var colormap = [];
         for(var i=0;i<this.total;i++){
-            colormap.push(this.renderOne(i));
+            colormap[i] = this.renderOne(i);
         }
         this.rendering = colormap;
     },
     renderOne:function(i){
         switch(this.map[i][MAP_TYPE]){
             case MAP_TYPE_EMPTY:
-                return [i,BG_COLOR[CL_R],BG_COLOR[CL_G],BG_COLOR[CL_B],0];
+                return [BG_COLOR[CL_R],BG_COLOR[CL_G],BG_COLOR[CL_B],0];
                 break;
             case MAP_TYPE_RESOURCE:
                 var color = this.resources[this.map[i][MAP_ITEM]];
-                return [i,color[CL_R],color[CL_G],color[CL_B],0];
+                return [color[CL_R],color[CL_G],color[CL_B],0];
                 break;
             case MAP_TYPE_MATERIAL:
                 var color = this.materials[this.map[i][MAP_ITEM]];
-                return [i,color[CL_R],color[CL_G],color[CL_B]],0;
+                return [color[CL_R],color[CL_G],color[CL_B],0];
                 break;
             case MAP_TYPE_ORGANISM:
                 var color = this.map[i][MAP_ITEM][ORG_CL];
-                if(this.cellWall)
-                    return [i,color[CL_R],color[CL_G],color[CL_B],1];
-                else
-                    return [i,color[CL_R],color[CL_G],color[CL_B],1];
+                return [color[CL_R],color[CL_G],color[CL_B],this.cellWall];
                 break;
         }
     },
@@ -543,7 +550,7 @@ pond = {
         o[ORG_DEMEANOR] = helpers.bool()?ORG_DEMEANOR_HELPFUL:ORG_DEMEANOR_PASSIVE;
         o[ORG_ATTR] = [];
         o[ORG_ATTR][ORG_ATTR_REPOCHANCE] = 2;
-        o[ORG_ATTR][ORG_ATTR_REPOAT] = 80;
+        o[ORG_ATTR][ORG_ATTR_REPOAT] = 100;
         o[ORG_ATTR][ORG_ATTR_MAXSTRENGTH] = 200;
         o[ORG_ATTR][ORG_ATTR_MOVECHANCE] = 2;
         return o;

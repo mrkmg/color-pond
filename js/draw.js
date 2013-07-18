@@ -16,6 +16,10 @@ draw = {
     pondData:null,
     pondWidth:null,
     pondHeight:null,
+    currentCanvas:0,
+    currentMap:[],
+    tmpCanvas:null,
+    tmpCanvasCtx:null,
     filter:'none',
     //functions
     init:function(width,height){
@@ -28,7 +32,9 @@ draw = {
         $('#pond').attr('height',height*this.scale);
         $('#pond').attr('width',width*this.scale);
         this.pondCtx = this.pond.getContext("2d");
-        this.pondData = this.pondCtx.getImageData(0, 0, this.pondWidth, this.pondHeight);
+        this.pondCtx.scale(this.scale,this.scale);
+        this.tmpCanvas = $('<canvas>').attr('width',width).attr('height',height)[0];
+        this.tmpCanvasCtx = this.tmpCanvas.getContext("2d");
     },
     point:function(i, r, g, b, o){
         if(o == undefined || o == null) o = 0;
@@ -58,8 +64,17 @@ draw = {
         this.point((x + y * this.pondWidth), r, g, b, a);
     },*/
     render:function(){
-        if(this.filter != 'none')
-        Filters.filterImage(this.filter);
+      var data = this.pondCtx.createImageData(this.pondWidth,this.pondHeight);
+      for(var i=0;i<this.currentMap.length;i++){
+          data.data[(i*4)] = this.currentMap[i][0];
+          data.data[(i*4)+1] = this.currentMap[i][1];
+          data.data[(i*4)+2] = this.currentMap[i][2];
+          data.data[(i*4)+3] = 255;
+      }
+      this.tmpCanvasCtx.putImageData(data,0,0);
+      this.pondCtx.drawImage(this.tmpCanvas,0,0);
+      if(this.filter != 'none')
+       Filters.filterImage(this.filter);
     }
 }
 

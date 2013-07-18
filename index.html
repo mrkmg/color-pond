@@ -22,7 +22,7 @@
                 <span class="item"><span class="label">Height:</span><input type="number" id="height" value="125" min="1" max="9999" /></span>
                 <span class="item"><span class="label">Total Area:</span><span id="totalarea"></span>
                 <span class="item"><span class="label">Best Fit? </span><input type="checkbox" id="bestfit" checked="checked" /></span>
-                <span class="item"><span class="label">Seed:</span><input type="text" style="width:50px;" id="seed" /><br>
+                <span class="item"><span class="label">Seed:</span><input type="text" style="width:90px;" id="seed" /><br>
                     <span style="font-size:10px;">(leave blank for random)</span></span>
                 <button id="doinit">Go</button>
             </div>
@@ -41,8 +41,8 @@
             <span class="item"><span class="label">Mutation Ch:</span><input id="mutationChance" type="number" min="1" max="500" /></span>
             <span class="item"><span class="label">R Spawn Ch:</span><input id="resourceSpawnChance" type="number" min="1" max="500" /></span>
             <span class="item"><span class="label">Goal R %:/</span><input id="resouceThreshold" type="number" min="1" max="500" /></span>
-            <span class="item"><span class="label">P Move Ch:/</span><input id="plantStartMoveChance" type="number" min="1" max="500" /></span>
-            <span class="item"><span class="label">Cell Wall:</span><input id="cellwall" type="checkbox" /></span>
+            <span class="item"><span class="label">P Move Ch:/</span><input id="plantStartMoveChance" type="number" min="1" max="5000" /></span>
+            <span class="item"><span class="label">Cell Wall:</span><input id="cellWall" type="number" min="0" max="5" /></span>
             <div id="info"></div>
         </div>
     </div>
@@ -62,10 +62,12 @@
                 case 'cmap':
                     if(!rendering) return;
                     rendering = true;
-                    for(var i in value){
-                        draw.pointStroke(value[i][0],value[i][1],value[i][2],value[i][3],0);
-                    }
-                    setTimeout(function(){ request('cmap'); },10);
+                    draw.currentMap = value;
+                    //for(var i in value){
+                    //    draw.pointStroke(value[i][0],value[i][1],value[i][2],value[i][3],value[i][4]);
+                    //}
+                    draw.render();
+                    setTimeout(function(){ request('cmap'); },50);
                     break;
                 case 'type':
                     $('#'+value.option).val(value.value)
@@ -108,10 +110,16 @@
         request('getOption','plantStartMoveChance');
         request('getOption','bulkOdd');
         request('getOption','stepWait');
+        request('getOption','cellWall');
 
         $('#filter').val(draw.filter);
         $('#filter').change(function(ev){
             draw.filter = $(this).val();
+        });
+
+        $('#pauserun').click(function(){
+            if(rendering) stop();
+            else start();
         });
 
         var screenX = $('html').width()-350;
@@ -158,14 +166,15 @@
             $('#totalarea').text(parseInt($('#height').val())*parseInt($('#width').val()));
         });
 
-        $('#flowChance, #producerSpawnChance, #consumerSpawnChance, #mutationChance, #resourceSpawnChance, #resouceThreshold, #plantStartMoveChance, #bulkOdd, #stepWait').change(function(){
+        $('#cellWall, #flowChance, #producerSpawnChance, #consumerSpawnChance, #mutationChance, #resourceSpawnChance, #resouceThreshold, #plantStartMoveChance, #bulkOdd, #stepWait').change(function(){
             var id = $(this).attr('id');
             request('setOption',{option:id,value:$(this).val()});
         });
         
+        $('#seed').val(Math.floor(Math.random()*10000000));
 
         $('#doinit').click(function(){
-            request('seed',$('#seed').val()==''?undefined:$('#seed').val());
+            request('seed',$('#seed').val());
             width = parseInt($('#width').val());
             height = parseInt($('#height').val());
             request('init',{width:width,height:height});
