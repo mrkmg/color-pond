@@ -124,13 +124,13 @@ pond = {
     //variables
     stepWait:10,
     cellWall:1,
-    mutationChance:20,
+    mutationChance:200,
     flowChance:1,
-    producerSpawnChance:50,
+    producerSpawnChance:500,
     consumerSpawnChance:50,
     resouceThreshold:60,
     singleRender:false,
-    resourceSpawnChance:120,
+    resourceSpawnChance:90,
     plantStartMoveChance:80,
     bulkOdd:1,
     width:5,
@@ -181,6 +181,13 @@ pond = {
 
         global_tick = 0;
 
+        this.map[Math.floor(Math.random()*this.total)] = [MAP_TYPE_ORGANISM,this.makeRandomOrganism(ORG_TYPE_PRODUCER,0)];
+        this.map[Math.floor(Math.random()*this.total)] = [MAP_TYPE_ORGANISM,this.makeRandomOrganism(ORG_TYPE_PRODUCER,1)];
+        this.map[Math.floor(Math.random()*this.total)] = [MAP_TYPE_ORGANISM,this.makeRandomOrganism(ORG_TYPE_PRODUCER,2)];
+        this.map[Math.floor(Math.random()*this.total)] = [MAP_TYPE_ORGANISM,this.makeRandomOrganism(ORG_TYPE_PRODUCER,0)];
+        this.map[Math.floor(Math.random()*this.total)] = [MAP_TYPE_ORGANISM,this.makeRandomOrganism(ORG_TYPE_PRODUCER,1)];
+        this.map[Math.floor(Math.random()*this.total)] = [MAP_TYPE_ORGANISM,this.makeRandomOrganism(ORG_TYPE_PRODUCER,2)];
+
         // for(var i=0;i<50;i++){
         //     this.map[Math.floor(Math.random()*this.total)] = [MAP_TYPE_ORGANISM,this.makeRandomOrganism(ORG_TYPE_PRODUCER)];
         //     this.map[Math.floor(Math.random()*this.total)] = [MAP_TYPE_ORGANISM,this.makeRandomOrganism(ORG_TYPE_CONSUMER)];
@@ -206,7 +213,7 @@ pond = {
         }
         else if(helpers.chance(this.consumerSpawnChance)){
             var spot = Math.floor(Math.random()*this.total);
-            this.map[spot] = [MAP_TYPE_ORGANISM,this.makeRandomOrganism(ORG_TYPE_CONSUMER)];
+            this.map[spot] = [MAP_TYPE_ORGANISM,this.makeRandomOrganism(ORG_TYPE_CONSUMER,Math.floor(Math.random()*3))];
             if(this.singleRender) this.renderOne(spot);
         }
     },
@@ -439,7 +446,7 @@ pond = {
         if(gain){
             if(o[ORG_STRENGTH] < o[ORG_ATTR][ORG_ATTR_MAXSTRENGTH]) o[ORG_STRENGTH]+=10;
         } else{
-            o[ORG_STRENGTH]-=1;
+            o[ORG_STRENGTH]-=2;
         }
         if(o[ORG_STRENGTH] < 0){
             var maptype=MAP_TYPE_EMPTY;
@@ -532,12 +539,12 @@ pond = {
     giveRandomMaterial:function(){
         return this.materialsNames[Math.floor(Math.random()*(this.materialsNames.length))];
     },
-    makeRandomOrganism:function(type){
+    makeRandomOrganism:function(type,desire){
         //TODO make organisms a little more random from the get
         var o = [];
         o[ORG_ID] = this.org_id_max; this.org_id_max++;
         o[ORG_TYPE] = type;
-        o[ORG_DESIRE] = o[ORG_TYPE]==ORG_TYPE_PRODUCER?this.giveRandomResource():this.giveRandomMaterial();
+        o[ORG_DESIRE] = desire;
         if(o[ORG_TYPE] == ORG_TYPE_PRODUCER){
             o[ORG_CL] = [51,255,51];
         } else {
