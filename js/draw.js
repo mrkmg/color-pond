@@ -1,12 +1,22 @@
 
-var FPS_filterStrength = 5;
-var FPS_frameTime = 0, FPS_lastLoop = new Date, FPS_thisLoop;
+tpmLoop=null;
+getFps=null;
 
-function gameLoopFrame(){
-  var FPS_thisFrameTime = (FPS_thisLoop=new Date) - FPS_lastLoop;
-  FPS_frameTime+= (FPS_thisFrameTime - FPS_frameTime) / FPS_filterStrength;
-  FPS_lastLoop = FPS_thisLoop;
-}
+(function(){
+    var filterStrength = 5;
+    var frameTime = 0, lastLoop = new Date, thisLoop;
+
+    tpmLoop = function(){
+      var thisFrameTime = (thisLoop=new Date) - lastLoop;
+      frameTime+= (thisFrameTime - frameTime) / filterStrength;
+      lastLoop = thisLoop;
+    }
+
+    getFps = function(){
+        return (1000/frameTime).toFixed(1);
+    }
+
+})();
 
 draw = {
     //variables
@@ -20,7 +30,8 @@ draw = {
     currentMap:[],
     tmpCanvas:null,
     tmpCanvasCtx:null,
-    filter:'none',
+    prefilter:'none',
+    postfilter:'none',
     //functions
     init:function(width,height){
         this.pondWidth = width;
@@ -31,8 +42,15 @@ draw = {
         this.scale = Math.min(Math.floor(screenX/width),Math.floor(screenY/height));
         $('#pond').attr('height',height*this.scale);
         $('#pond').attr('width',width*this.scale);
+        // $('#pond').attr('height',height);
+        // $('#pond').attr('width',width);
+        // $('#pond').css('height',height*this.scale);
+        // $('#pond').css('width',width*this.scale);
         this.pondCtx = this.pond.getContext("2d");
-        this.pondCtx.scale(this.scale,this.scale);
+        this.pondCtx.imageSmoothingEnabled = false;
+        this.pondCtx.webkitImageSmoothingEnabled = false;
+        this.pondCtx.mozImageSmoothingEnabled = false;
+        //this.pondCtx.scale(this.scale,this.scale);
         this.tmpCanvas = $('<canvas>').attr('width',width).attr('height',height)[0];
         this.tmpCanvasCtx = this.tmpCanvas.getContext("2d");
     },
@@ -53,28 +71,21 @@ draw = {
         this.pondCtx.strokeStyle = s;
         this.pondCtx.stroke();
     },
-    /*point:function(i, r, g, b, a){
-        var index = i*4;
-        this.pondData.data[index + 0] = r;
-        this.pondData.data[index + 1] = g;
-        this.pondData.data[index + 2] = b;
-        this.pondData.data[index + 3] = a;
-    },
-    pointCart:function(i, r, g, b, a){
-        this.point((x + y * this.pondWidth), r, g, b, a);
-    },*/
-    render:function(){
-      var data = this.pondCtx.createImageData(this.pondWidth,this.pondHeight);
-      for(var i=0;i<this.currentMap.length;i++){
-          data.data[(i*4)] = this.currentMap[i][0];
-          data.data[(i*4)+1] = this.currentMap[i][1];
-          data.data[(i*4)+2] = this.currentMap[i][2];
-          data.data[(i*4)+3] = 255;
-      }
-      this.tmpCanvasCtx.putImageData(data,0,0);
-      this.pondCtx.drawImage(this.tmpCanvas,0,0);
-      if(this.filter != 'none')
-       Filters.filterImage(this.filter);
+    render:function(value){
+        tpmLoop();
+        var data = this.pondCtx.createImageData(this.pondWidth,this.pondHeight);
+        for(var i=0;i<value.length;i++) data.data[i] = value[i];
+        if(this.prefilter == 'none'){
+            this.tmpCanvasCtx.putImageData(data,0,0);
+        }
+        else{
+            this.tmpCanvasCtx.putImageData(Filters[this.prefilter](data),0,0);
+        }
+
+        this.pondCtx.drawImage(this.tmpCanvas,0,0,this.pondWidth*this.scale,this.pondHeight*this.scale);
+        //this.pondCtx.putImageData(data,0,0);
+        if(this.postfilter != 'none')
+            Filters.filterImage(this.postfilter);
     }
 }
 
@@ -156,13 +167,13 @@ Filters.convolute = function(pixels, weights, opaque) {
   return output;
 };
 
-var f19 = 1/9;
+var f19 = 1/4;
 
-Filters.blur = function(pixels){
+Filters.emboss = function(pixels){
     return this.convolute(pixels,
-      [ f19, f19, f19,
-        f19, f19, f19,
-        f19, f19, f19 ]
+      [ -2, -1, 0,
+        -1, 1, 1,
+        0, 1, 2 ]
     );
 }
 
@@ -174,11 +185,18 @@ Filters.sharpen = function(pixels){
     );
 }
 
+Filters.edge = function(pixels){
+    return this.convolute(pixels,
+      [ 0,1.5,0,
+        1.5,-5,1.5,
+        0,1.5,0 ]
+    );
+}
+
 Filters.smooth = function(pixels){
     return this.convolute(pixels,
-      [ f19, f19, f19, f19,
-        f19, f19, f19, f19,
-        f19, f19, f19, f19,
-        f19, f19, f19, f19 ]
+      [ f19, f19, f19,
+        f19, f19, f19,
+        f19, f19, f19 ]
     );
 }

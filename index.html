@@ -8,11 +8,20 @@
     <script src="http://code.jquery.com/jquery-1.10.1.min.js"></script>
     <script src="js/draw.js"></script>
     <script src="js/helpers.js"></script>
+    <script src="js/init.js" type="text/javascript"></script>
 
     <title>ColorPond</title>
 </head>
 <body>
-    <div style="" id="fps"></div>
+    <div id="info">
+        <div class="fps"></div>
+        <div class="tps"></div>
+        <div class="frame"></div>
+        <div class="pEmpty"></div>
+        <div class="pRes"></div>
+        <div class="pMat"></div>
+        <div class="pOrg"></div>
+    </div>
     <h2>ColorPond</h2>
     <div id="pondHolder">
         <canvas id="pond" class="no_initial"></canvas>
@@ -22,28 +31,37 @@
                 <span class="item"><span class="label">Height:</span><input type="number" id="height" value="125" min="1" max="9999" /></span>
                 <span class="item"><span class="label">Total Area:</span><span id="totalarea"></span>
                 <span class="item"><span class="label">Best Fit? </span><input type="checkbox" id="bestfit" checked="checked" /></span>
-                <span class="item"><span class="label">Seed:</span><input type="text" style="width:90px;" id="seed" /><br>
-                    <span style="font-size:10px;">(leave blank for random)</span></span>
+                <span class="item"><span class="label">Seed*:</span><input type="text" style="width:90px;" id="seed" />
+                <br />
+                <br />
                 <button id="doinit">Go</button>
             </div>
             <span class="item no_initial"><button id="pauserun">Pause/Run</button></span>
             <span class="item"><span class="label">Update Rate:</span><input id="bulkOdd" type="number" min="1" max="100" /></span>
             <span class="item"><span class="label">Tick Wait:</span><input id="stepWait" type="number" min="10" max="5000" /></span>
-            <span class="item"><span class="label">Filter:</span><select id="filter">
+            <span class="item"><span class="label">Pre Filter:</span><select id="prefilter">
               <option value="none">None</option>
               <option value="sharpen" selected>Sharpen</option>
-              <option value="blur">Blur</option>
+              <option value="emboss">Emboss</option>
               <option value="smooth">Neon Smooth</option>
+              <option value="edge">Edge Detect</option>
+            </select></span>
+            <span class="item"><span class="label">Post Filter**:</span><select id="postfilter">
+              <option value="none">None</option>
+              <option value="sharpen" selected>Sharpen</option>
+              <option value="emboss">Emboss</option>
+              <option value="smooth">Neon Smooth</option>
+              <option value="edge">Edge Detect</option>
             </select></span>
             <span class="item"><span class="label">Flow Ch:</span><input id="flowChance" type="number" min="1" max="50" /></span>
             <span class="item"><span class="label">P Spawn Ch:</span><input id="producerSpawnChance" type="number" min="1" max="500" /></span>
             <span class="item"><span class="label">C Spawn Ch:</span><input id="consumerSpawnChance" type="number" min="1" max="500" /></span>
             <span class="item"><span class="label">Mutation Ch:</span><input id="mutationChance" type="number" min="1" max="500" /></span>
             <span class="item"><span class="label">R Spawn Ch:</span><input id="resourceSpawnChance" type="number" min="1" max="500" /></span>
-            <span class="item"><span class="label">Goal R %:/</span><input id="resouceThreshold" type="number" min="1" max="500" /></span>
-            <span class="item"><span class="label">P Move Ch:/</span><input id="plantStartMoveChance" type="number" min="1" max="5000" /></span>
-            <span class="item"><span class="label">Cell Wall:</span><input id="cellWall" type="number" min="0" max="5" /></span>
-            <div id="info"></div>
+            <span class="item"><span class="label">Goal R %:</span><input id="resouceThreshold" type="number" min="1" max="500" /></span>
+            <span class="item"><span class="label">P Move Ch:</span><input id="plantStartMoveChance" type="number" min="1" max="5000" /></span>
+            <span class="item"><span class="label">Cell Wall:</span><input id="cellWall" type="number" min="0" max="5" /></span><br /><br />
+            <span class="initial_only"><span style="font-size:10px;">*Entering a seed will slow down computation speed</span></span></span>
         </div>
     </div>
     <script>
@@ -51,237 +69,6 @@
     function request(cmd,data){
         worker.postMessage({cmd:cmd,data:data});
     }
-    $(document).ready(function(){
-        $('.no_initial').hide();
-
-        var a = [[1,2,3,4,5],['1',1,4,2,5]];
-
-        worker.addEventListener('message',function(e){
-            var value = e.data.value;
-            switch(e.data.type){
-                case 'cmap':
-                    if(!rendering) return;
-                    rendering = true;
-                    draw.currentMap = value;
-                    //for(var i in value){
-                    //    draw.pointStroke(value[i][0],value[i][1],value[i][2],value[i][3],value[i][4]);
-                    //}
-                    draw.render();
-                    setTimeout(function(){ request('cmap'); },50);
-                    break;
-                case 'type':
-                    $('#'+value.option).val(value.value)
-                    break;
-                case 'time':
-                    var a =  new Date().getTime();
-                    console.log(a);
-                    break;
-                case 'log':
-                case 'error':
-                    console.log(value);
-                    break;
-                default:
-                    console.log(e.data);
-                    break;
-            }
-        });
-
-        var rendering = false;
-
-        
-
-        function start(){
-            rendering = true;
-            request('start');
-            request('cmap');
-        }
-
-        function stop(){
-            rendering = false;
-            request('stop');
-        }
-
-        request('getOption','flowChance');
-        request('getOption','producerSpawnChance');
-        request('getOption','consumerSpawnChance');
-        request('getOption','mutationChance');
-        request('getOption','resourceSpawnChance');
-        request('getOption','resouceThreshold');
-        request('getOption','plantStartMoveChance');
-        request('getOption','bulkOdd');
-        request('getOption','stepWait');
-        request('getOption','cellWall');
-
-        $('#filter').val(draw.filter);
-        $('#filter').change(function(ev){
-            draw.filter = $(this).val();
-        });
-
-        $('#pauserun').click(function(){
-            if(rendering) stop();
-            else start();
-        });
-
-        var screenX = $('html').width()-350;
-        var screenY = $('html').height()-150;
-
-        var ideal = 15625;
-        if(screenX > screenY){
-            var s1 = Math.round((screenX/screenY)*100)/100;
-            var s2 = Math.floor(ideal/s1);
-            var s3 = Math.floor(Math.sqrt(s2));
-            var dx = Math.floor(s1*s3);
-            var dy = s3;
-        } else {
-            var s1 = Math.round((screenY/screenX)*100)/100;
-            var s2 = Math.floor(ideal/s1);
-            var s3 = Math.floor(Math.sqrt(s2));
-            var dy = Math.floor(s1*s3);
-            var dx = s3;
-        }
-
-        $('#width').val(dx);
-        $('#height').val(dy);
-
-        $('#totalarea').text(parseInt($('#height').val())*parseInt($('#width').val()));
-
-        var bestfit = true;
-
-        $('#bestfit').click(function(){
-            bestfit = !bestfit;
-            if(bestfit) $(this).attr('checked','checked');
-            else       $(this).removeAttr('checked');
-        });
-
-        $('#height').change(function(){
-            if(bestfit){
-                $('#width').val(Math.floor(dx*(parseInt($(this).val())/dy)));
-            }
-            $('#totalarea').text(parseInt($('#height').val())*parseInt($('#width').val()));
-        });
-        $('#width').change(function(){
-            if(bestfit){
-                $('#height').val(Math.floor(dy*(parseInt($(this).val())/dx)));
-            }
-            $('#totalarea').text(parseInt($('#height').val())*parseInt($('#width').val()));
-        });
-
-        $('#cellWall, #flowChance, #producerSpawnChance, #consumerSpawnChance, #mutationChance, #resourceSpawnChance, #resouceThreshold, #plantStartMoveChance, #bulkOdd, #stepWait').change(function(){
-            var id = $(this).attr('id');
-            request('setOption',{option:id,value:$(this).val()});
-        });
-        
-        $('#seed').val(Math.floor(Math.random()*10000000));
-
-        $('#doinit').click(function(){
-            request('seed',$('#seed').val());
-            width = parseInt($('#width').val());
-            height = parseInt($('#height').val());
-            request('init',{width:width,height:height});
-            draw.init(width,height);
-            helpers.init(width,height);
-            $('#pondHolder').width(250 + $('#pond').width());
-            $('.no_initial').show();
-            $('.intial_only').hide();
-            start();
-        });
-
-        /*
-        $('#doinit').click(function(){
-            if($('#seed').val() == '') Math.seedrandom();
-            else Math.seedrandom($('#seed').val());
-            pond.width = parseInt($('#width').val());
-            pond.height = parseInt($('#height').val());
-            if(pond.width*pond.height > 22500){
-                conf = confirm('You have selected a LARGE map. This will almost certianly cause extreme lag. Press OK to continue, or cancel to change the size.');
-                if(!conf) return;
-            }
-            pond.init();
-            pond.render();
-            $('#pondHolder').width(250 + $('#pond').width());
-            $('.no_initial').show();
-            $('.intial_only').hide();
-        });
-        $('.no_initial').hide();
-        var tick = 10;
-        running = false;
-        $('#pauserun').click(function(){
-            if(running){
-                clearTimeout(r);
-                running = false;
-            }
-            else{
-                r = setTimeout(function(){
-                    pond.step();
-                    r = setTimeout(arguments.callee,tick)
-                },tick);
-                running = true;
-            }
-        });
-        $('#singlebulk').click(function(){
-            pond.singleRender = !pond.singleRender;
-            if(pond.singleRender) $(this).text('Single Render');
-            else                  $(this).text('Bulk Render');
-        });
-        $('#bulkrate').change(function(ev){
-            pond.bulkOdd = parseInt($(this).val());
-        });
-        $('#speed').change(function(ev){
-            tick = parseInt($(this).val());
-        });
-        $('#flow').change(function(ev){
-            pond.flowChance = parseInt($(this).val());
-        });
-        $('#pro_life').change(function(ev){
-            pond.producerSpawnChance = parseInt($(this).val());
-        });
-        $('#con_life').change(function(ev){
-            pond.consumerSpawnChance = parseInt($(this).val());
-        });
-        $('#resourcespawn').change(function(ev){
-            pond.resourceSpawnChance = parseInt($(this).val());
-        });
-        $('#goalresouce').change(function(ev){
-            pond.resouceThreshold = parseInt($(this).val());
-        });
-        $('#plantStartMoveChance').change(function(ev){
-            pond.plantStartMoveChance = parseInt($(this).val());
-        });
-        $('#mutation').change(function(ev){
-            pond.mutationChance = parseInt($(this).val());
-        });
-        $('#filter').change(function(ev){
-            draw.filter = $(this).val();
-            pond.render();
-        });
-        $('#cellwall').click(function(){
-            pond.cellWall = !pond.cellWall;
-            if(pond.cellWall) $(this).attr('checked','checked');
-            else              $(this).removeAttr('checked');
-        });
-
-
-        $('#bulkrate').val(pond.bulkOdd);
-        $('#speed').val(tick);
-        $('#flow').val(pond.flowChance);
-        $('#mutation').val(pond.mutationChance);
-        $('#pro_life').val(pond.producerSpawnChance);
-        $('#con_life').val(pond.consumerSpawnChance);
-        $('#resourcespawn').val(pond.resourceSpawnChance);
-        $('#plantStartMoveChance').val(pond.plantStartMoveChance);
-        $('#goalresouce').val(pond.resouceThreshold);
-        $('#singlebulk').text(pond.singleRender?'Single Render':'Bulk Render');
-        if(pond.cellWall){
-            $('#cellwall').attr('checked','checked');
-        }
-
-        */
-
-
-       
-
-
-    });
-</script>
+    </script>
 </body>
 </html>

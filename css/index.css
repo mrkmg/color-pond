@@ -73,6 +73,7 @@ select {
     -khtml-border-radius:0.4em;
     border-radius: 4px;
     float:right;
+    width:90px;
 }
 select:hover, select:focus {
     border-color:#c5c5c5;
@@ -98,7 +99,7 @@ h2{
 }
 
 #pondHolder{
-    width:0;
+    width:200px;
     margin:30px auto;
 }
 
@@ -117,11 +118,12 @@ h2{
     border:solid 5px #666;
 }
 
-#fps{
+#info{
     position:fixed;
     top:0;
-    right:0;
+    right:5px;
     color:white;
+    text-align: right;
 }
 
 .padder{
@@ -133,4 +135,19 @@ h2{
     margin-top: 10px;
     font-size: 18px;
     text-shadow: 1px 1px 0px #666;
+}
+
+#doinit{
+    padding: 10px 20px;
+    margin-left:80px;
+}
+
+canvas {
+    image-rendering: optimizeSpeed;             // Older versions of FF
+    image-rendering: -moz-crisp-edges;          // FF 6.0+
+    image-rendering: -webkit-optimize-contrast; // Webkit
+                                                //  (Safari now, Chrome soon)
+    image-rendering: -o-crisp-edges;            // OS X & Windows Opera (12.02+)
+    image-rendering: optimize-contrast;         // Possible future browsers.
+    -ms-interpolation-mode: nearest-neighbor;   // IE
 }
