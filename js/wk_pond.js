@@ -1,6 +1,7 @@
 //Webworker
 
-importScripts('helpers.js');    
+importScripts('helpers.js');
+importScripts('flows.js');  
 
 self.addEventListener('message', function(e) {
   var data = e.data.data;
@@ -154,11 +155,9 @@ pond = {
     flowChance:3,
     producerSpawnChance:100,
     consumerSpawnChance:20,
-    resouceThreshold:40,
+    resouceThreshold:30,
     singleRender:false,
     resourceSpawnChance:90,
-    plantStartMoveChance:80,
-    bulkOdd:1,
     width:5,
     height:5,
     resources:[
@@ -207,21 +206,7 @@ pond = {
 
         global_tick = 0;
 
-
-        this.cx = 1-(this.height/this.width);
-        this.chance = this.cx*100;
-
-        console.log(this.cx,this.chance);
-
-        // this.map[Math.floor(Math.random()*this.total)] = [MAP_TYPE_ORGANISM,this.makeRandomOrganism(ORG_TYPE_PRODUCER,0)];
-        // this.map[Math.floor(Math.random()*this.total)] = [MAP_TYPE_ORGANISM,this.makeRandomOrganism(ORG_TYPE_PRODUCER,1)];
-        // this.map[Math.floor(Math.random()*this.total)] = [MAP_TYPE_ORGANISM,this.makeRandomOrganism(ORG_TYPE_PRODUCER,2)];
-
-        // for(var i=0;i<50;i++){
-        //     this.map[Math.floor(Math.random()*this.total)] = [MAP_TYPE_ORGANISM,this.makeRandomOrganism(ORG_TYPE_PRODUCER)];
-        //     this.map[Math.floor(Math.random()*this.total)] = [MAP_TYPE_ORGANISM,this.makeRandomOrganism(ORG_TYPE_CONSUMER)];
-        // }
-        
+        this.currentFlow = flows.sin(this.width,this.height);
     },
     step:function(){
         tpmLoop();
@@ -264,56 +249,7 @@ pond = {
             if(this.singleRender) this.renderOne(spot);
         }
     },
-    cx:null,
-    chance:null,
-    getCurrentFlowDir:function(i){
-        var xy = helpers.indexToCart(i);
-        var x = xy[0];
-        var y = xy[1];
-        var cx = Math.floor(this.width/2);
-        var cy = Math.floor(this.height/2);
-
-        var dx = cx - x;
-        var dy = cy - y;
-
-        dx = dx * this.cx;
-
-        // 1.8521739130434782
-        // 24.3
-        // 213
-        // 115
-        // 0.460093896713615
-
-
-        var angle = Math.floor(((Math.atan2(dy,dx) * 180 / Math.PI)+22).mod(360)/45);
-        switch(angle){
-            case 0:
-                    return 2;
-                break;
-            case 1:
-                    return !helpers.percentage(this.chance)?2:0;
-                break;
-            case 2:
-                    return 0;
-                break;
-            case 3:
-                    return helpers.percentage(this.chance)?0:3;
-                break;
-            case 4:
-                    return 3;
-                break;
-            case 5:
-                    return !helpers.percentage(this.chance)?3:1;
-                break;
-            case 6:
-                    return 1;
-                break;
-            case -1:
-            case 7:
-                    return helpers.percentage(this.chance)?1:2;
-                break;
-        }
-    },
+    currentFlow:null,
     flowResMats:function(){
         var listr = this.lists[MAP_TYPE_RESOURCE];
         var listm = this.lists[MAP_TYPE_MATERIAL];
@@ -329,7 +265,7 @@ pond = {
 
             t = 0;
             changeDir = helpers.bool()?1:-1;
-            currentDir = this.getCurrentFlowDir(i);
+            currentDir = this.currentFlow(i);
             if(helpers.chance(4)) currentDir = Math.floor(Math.random()*4);
             canMove = false;
             while(!(canMove = (this.map[sides[currentDir]][MAP_TYPE] == MAP_TYPE_EMPTY)) && t < 4){
@@ -629,7 +565,6 @@ pond = {
                 break;
             case MAP_TYPE_MATERIAL:
                 var color = this.materials[this.map[i][MAP_ITEM]];
-                if(color.length < 3) console.log(i,this.map[i],color);
                 return [color[CL_R],color[CL_G],color[CL_B]];
                 break;
             case MAP_TYPE_ORGANISM:
@@ -651,7 +586,6 @@ pond = {
         this.clearListsCounts();
         for(var i in this.map){
             if(this.map[i][MAP_TYPE] == MAP_TYPE_WALL) this.map[i][MAP_TYPE] = this.map[i][MAP_TYPE_EMPTY];
-            if([MAP_TYPE] == MAP_TYPE_WALL) console.log(i,this.map[i][MAP_TYPE]);
             var type = this.map[i][MAP_TYPE];
             this.lists[type].push(parseInt(i));
             this.currents[type]++;
