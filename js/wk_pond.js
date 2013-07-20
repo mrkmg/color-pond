@@ -18,6 +18,21 @@ self.addEventListener('message', function(e) {
     case 'getOption':
         report('type',{option:data,value:pond[data]});
         break;
+    case 'setFlow':
+        switch(data){
+            case 'river':
+                pond.currentFlow = flows.river(pond.width,pond.height);
+                helpers.wrapAround = true;
+                break;
+            case 'spiral':
+                pond.currentFlow = flows.sin(pond.width,pond.height);
+                helpers.wrapAround = true;
+                break;
+            case 'random':
+
+                break;
+        }
+        break;
     case 'cmap':
         pond.render();
         report('cmap',bytes);
@@ -158,6 +173,7 @@ pond = {
     resouceThreshold:30,
     singleRender:false,
     resourceSpawnChance:90,
+    wallType:MAP_TYPE_WALL,
     width:5,
     height:5,
     resources:[

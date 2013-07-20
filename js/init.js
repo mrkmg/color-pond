@@ -56,7 +56,6 @@ $(document).ready(function(){
                 setTimeout(updateInfo,1000);
         }
 
-        request('getOption','flowChance');
         request('getOption','producerSpawnChance');
         request('getOption','consumerSpawnChance');
         request('getOption','mutationChance');
@@ -72,6 +71,10 @@ $(document).ready(function(){
         $('#postfilter').val(draw.postfilter);
         $('#postfilter').change(function(ev){
             draw.postfilter = $(this).val();
+        });
+
+        $('#flowtype').change(function(ev){
+            request('setFlow',$(this).val());
         });
 
         $('#pauserun').click(function(){
