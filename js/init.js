@@ -26,14 +26,11 @@ $(document).ready(function(){
                     $('.pOrg').text(value[2][3]+' O');
                     break;
                 case 'getItem':
-                    console.log(value);
+                    //console.log(value);
                     break;
                 case 'log':
                 case 'error':
                     console.log(value);
-                    break;
-                default:
-                    console.log(e.data);
                     break;
             }
         });
@@ -65,8 +62,6 @@ $(document).ready(function(){
         request('getOption','mutationChance');
         request('getOption','resourceSpawnChance');
         request('getOption','resouceThreshold');
-        request('getOption','plantStartMoveChance');
-        request('getOption','bulkOdd');
         request('getOption','stepWait');
         request('getOption','cellWall');
 

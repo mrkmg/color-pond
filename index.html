@@ -38,7 +38,7 @@
             </div>
             <span class="item no_initial"><button id="pauserun">Pause/Run</button></span>
             <span class="item"><span class="label">Update Rate:</span><input id="bulkOdd" type="number" min="1" max="100" /></span>
-            <span class="item"><span class="label">Tick Wait:</span><input id="stepWait" type="number" min="10" max="5000" /></span>
+            <span class="item"><span class="label">Tick Wait:</span><input id="stepWait" type="number" min="10" max="9999" /></span>
             <span class="item"><span class="label">Pre Filter:</span><select id="prefilter">
               <option value="none">None</option>
               <option value="sharpen" selected>Sharpen</option>
@@ -54,12 +54,11 @@
               <option value="edge">Edge Detect</option>
             </select></span>
             <span class="item"><span class="label">Flow Ch:</span><input id="flowChance" type="number" min="1" max="50" /></span>
-            <span class="item"><span class="label">P Spawn Ch:</span><input id="producerSpawnChance" type="number" min="1" max="500" /></span>
-            <span class="item"><span class="label">C Spawn Ch:</span><input id="consumerSpawnChance" type="number" min="1" max="500" /></span>
-            <span class="item"><span class="label">Mutation Ch:</span><input id="mutationChance" type="number" min="1" max="500" /></span>
-            <span class="item"><span class="label">R Spawn Ch:</span><input id="resourceSpawnChance" type="number" min="1" max="500" /></span>
-            <span class="item"><span class="label">Goal R %:</span><input id="resouceThreshold" type="number" min="1" max="500" /></span>
-            <span class="item"><span class="label">P Move Ch:</span><input id="plantStartMoveChance" type="number" min="1" max="5000" /></span>
+            <span class="item"><span class="label">P Spawn Ch:</span><input id="producerSpawnChance" type="number" min="1" max="999" /></span>
+            <span class="item"><span class="label">C Spawn Ch:</span><input id="consumerSpawnChance" type="number" min="1" max="999" /></span>
+            <span class="item"><span class="label">Mutation Ch:</span><input id="mutationChance" type="number" min="1" max="999" /></span>
+            <span class="item"><span class="label">R Spawn Ch:</span><input id="resourceSpawnChance" type="number" min="1" max="999" /></span>
+            <span class="item"><span class="label">Goal R %:</span><input id="resouceThreshold" type="number" min="1" max="999" /></span>
             <span class="item"><span class="label">Cell Wall:</span><input id="cellWall" type="number" min="0" max="5" /></span><br /><br />
             <span class="initial_only"><span style="font-size:10px;">*Entering a seed will slow down computation speed</span></span></span>
         </div>

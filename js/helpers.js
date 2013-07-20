@@ -3,12 +3,11 @@ helpers = {
     width:null,
     height:null,
     total:null,
-    wrapAround:false,
+    wrapAround:true,
     init:function(width,height){
         this.width = width;
         this.height = height;
         this.total = width*height;
-        console.log(this.total);
     },
     indexToCart:function(i){
         var x = i%this.width;
@@ -34,19 +33,19 @@ helpers = {
             u = u>this.total?this.total:u;
             d = d<0?this.total:d;
         }
-        return [l,r,u,d];
+        return [r,u,l,d];
     },
     getRelative:function(i,d,l){
         if(this.wrapAround){
             switch(d){
                 case 0:
-                    return (i.mod(this.width)-l<0)?(i-l+this.width):(i-l);
-                    break;
-                case 1:
                     return (i.mod(this.width)+l>this.width-1)?(i+l-this.width):(i+l);
                     break;
-                case 2:
+                case 1:
                     return (i+(this.width*l)).mod(this.total);
+                    break;
+                case 2:
+                    return (i.mod(this.width)-l<0)?(i-l+this.width):(i-l);
                     break;
                 case 3:
                     return (i-(this.width*l)).mod(this.total);
@@ -55,14 +54,14 @@ helpers = {
         } else {
             switch(d){
                 case 0:
-                    return (i.mod(this.width)-l<0)?this.total:(i-l);
-                    break;
-                case 1:
                     return (i.mod(this.width)+l>this.width-1)?this.total:(i+l);
                     break;
-                case 2:
+                case 1:
                     var up = (i+(this.width*l));
                     return up>this.total?this.total:up;
+                    break;
+                case 2:
+                    return (i.mod(this.width)-l<0)?this.total:(i-l);
                     break;
                 case 3:
                     var dw = (i-(this.width*l));
