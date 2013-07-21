@@ -19,10 +19,10 @@ $(document).ready(function(){
                     break;
                 case 'stats':
                     $('.tps').text(value[0]+' tps');
-                    $('.frame').text('frame '+value[1]);
+                    $('.frame').text(value[1]+' T');
                     $('.pEmpty').text(value[2][0]+' E');
                     $('.pRes').text(value[2][1]+' R');
-                    $('.pMat').text(value[2][2]+' C');
+                    $('.pMat').text(value[2][2]+' M');
                     $('.pOrg').text(value[2][3]+' O');
                     break;
                 case 'getItem':
@@ -74,7 +74,6 @@ $(document).ready(function(){
         request('getOption','consumerSpawnChance');
         request('getOption','mutationChance');
         request('getOption','resouceThreshold');
-        request('getOption','stepWait');
         request('getOption','cellWall');
         request('getOption','pLifeGain');
         request('getOption','cLifeGain');
@@ -141,7 +140,7 @@ $(document).ready(function(){
             $('#totalarea').text(parseInt($('#height').val())*parseInt($('#width').val()));
         });
 
-        $('#flowChance, #producerSpawnChance, #consumerSpawnChance, #mutationChance, #resouceThreshold, #plantStartMoveChance, #pLifeGain, #cLifeGain, #stepWait').change(function(){
+        $('#flowChance, #producerSpawnChance, #consumerSpawnChance, #mutationChance, #resouceThreshold, #plantStartMoveChance, #pLifeGain, #cLifeGain').change(function(){
             var id = $(this).attr('id');
             request('setOption',{option:id,value:$(this).val()});
         });

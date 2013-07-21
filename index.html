@@ -37,7 +37,6 @@
                 <button id="doinit">Go</button>
             </div>
             <span class="item no_initial"><button id="pauserun">Pause/Run</button></span>
-            <span class="item"><span class="label">Tick Wait:</span><input id="stepWait" type="number" min="10" max="9999" /></span>
             <span class="item"><span class="label">Pre Filter:</span><select id="prefilter">
               <option value="none">None</option>
               <option value="sharpen" selected>Sharpen</option>
@@ -45,14 +44,14 @@
               <option value="smooth">Neon Smooth</option>
               <option value="edge">Edge Detect</option>
             </select></span>
-            <span class="item"><span class="label">Post Filter**:</span><select id="postfilter">
+            <span class="item"><span class="label">Post Filter:</span><select id="postfilter">
               <option value="none">None</option>
               <option value="sharpen" selected>Sharpen</option>
               <option value="emboss">Emboss</option>
               <option value="smooth">Neon Smooth</option>
               <option value="edge">Edge Detect</option>
             </select></span>
-            <span class="item"><span class="label">Flow Type:</span><select id="flowtype">
+            <span class="item no_initial"><span class="label">Flow Type:</span><select id="flowtype">
               <option value="spiral">Spiral</option>
               <option value="river">River</option>
               <option value="random">Random</option>
@@ -64,7 +63,7 @@
             <span class="item"><span class="label">P Life Gain:</span><input id="pLifeGain" type="number" min="5" max="50" /></span>
             <span class="item"><span class="label">C Life Gain:</span><input id="cLifeGain" type="number" min="5" max="50" /></span><br /><br />
             
-            <span class="initial_only"><span style="font-size:10px;">*Entering a seed will slow down computation speed</span></span></span>
+            <span class="intial_only"><span style="font-size:10px;">*Entering a seed will slow down computation speed</span></span></span>
         </div>
     </div>
     <script>
