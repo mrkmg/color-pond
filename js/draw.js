@@ -42,34 +42,15 @@ draw = {
         this.scale = Math.min(Math.floor(screenX/width),Math.floor(screenY/height));
         $('#pond').attr('height',height*this.scale);
         $('#pond').attr('width',width*this.scale);
-        // $('#pond').attr('height',height);
-        // $('#pond').attr('width',width);
-        // $('#pond').css('height',height*this.scale);
-        // $('#pond').css('width',width*this.scale);
         this.pondCtx = this.pond.getContext("2d");
         this.pondCtx.imageSmoothingEnabled = false;
         this.pondCtx.webkitImageSmoothingEnabled = false;
         this.pondCtx.mozImageSmoothingEnabled = false;
-        //this.pondCtx.scale(this.scale,this.scale);
         this.tmpCanvas = $('<canvas>').attr('width',width).attr('height',height)[0];
         this.tmpCanvasCtx = this.tmpCanvas.getContext("2d");
     },
-    point:function(i, r, g, b, o){
-        if(o == undefined || o == null) o = 0;
-        var xy = helpers.indexToCart(i);
-        var sx = (xy[0]*this.scale)+o;
-        var sy = (xy[1]*this.scale)+o;
-        this.pondCtx.beginPath();
-        this.pondCtx.rect(sx, sy, this.scale-o, this.scale-o);
-        this.pondCtx.fillStyle = 'rgb('+r+','+g+','+b+')';
-        this.pondCtx.fill();
-    },
-    pointStroke:function(i, r, g, b, s){
-        this.point(i, r, g, b,s);
-        if(s == 0) return;
-        this.pondCtx.lineWidth = 2;
-        this.pondCtx.strokeStyle = s;
-        this.pondCtx.stroke();
+    showInfo:function(info,i){
+        // TODO
     },
     render:function(value){
         tpmLoop();

@@ -26,7 +26,7 @@ $(document).ready(function(){
                     $('.pOrg').text(value[2][3]+' O');
                     break;
                 case 'getItem':
-                    //console.log(value);
+                    showItem(value);
                     break;
                 case 'log':
                 case 'error':
@@ -34,6 +34,20 @@ $(document).ready(function(){
                     break;
             }
         });
+
+        function showItem(i){
+            switch(i[0]){
+                case 0:
+                    draw.showInfo('Resource: '+i[1]);
+                    break;
+                case 1:
+                    draw.showInfo('Material: '+i[1]);
+                    break;
+                case 2:
+
+                    break;
+            }
+        }
 
         var rendering = false;
 
@@ -159,7 +173,6 @@ $(document).ready(function(){
 
         setInterval(function(){
             if(mousePosX != -1 && mousePosY != -1){
-                console.log(helpers.cartToIndex(mousePosX,mousePosY));
                 request('getItem',helpers.cartToIndex(mousePosX,mousePosY));
             }
         },1000);

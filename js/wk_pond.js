@@ -213,11 +213,7 @@ pond = {
 
         //intialFill
         for(var i=0;i<this.total;i++){
-            if(true){
-                this.map[i] = [MAP_TYPE_EMPTY];
-            } else {
-                this.map[i] = [MAP_TYPE_RESOURCE,this.giveRandomResource()];
-            }
+            this.map[i] = [MAP_TYPE_EMPTY];
         }
 
         global_tick = 0;
@@ -237,14 +233,6 @@ pond = {
             this.currentFlowDir = (this.currentFlowDir+(helpers.bool()?1:-1)).mod(8);
         }
         this.unsetWall();
-        
-        if(rotateforward)
-            rotateoff+=1;
-        else
-            rotateoff-=1;
-
-        if(rotateoff<17) rotateforward = true;
-        else if(rotateoff>27) rotateforward=false;
     },
     setWall:function(){
         this.map[this.total] = [MAP_TYPE_WALL];
@@ -319,13 +307,15 @@ pond = {
             var o = this.map[oi][MAP_ITEM]
             o[ORG_DIDCONSUME] = false;
             o[ORG_DIDCONVERT] = false;
-            this.orgEat(oi);
-            this.orgInteract(oi);
-            this.orgProduce(oi);
-            this.orgReproduce(oi);
-            this.orgExcrete(oi);
-            oi = this.orgMove(oi);
-            this.orgLife(oi);
+            this.orgEat(oi,o);
+            this.orgInteract(oi,o);
+            this.orgProduce(oi,o);
+            this.orgReproduce(oi,o);
+            if(o[ORG_TYPE] == ORG_TYPE_PRODUCER)
+                this.orgExcrete(oi,o);
+            if(this[ORG_TYPE] = ORG_TYPE_CONSUMER)
+                oi = this.orgMove(oi,o);
+            this.orgLife(oi,o);
         }
     },
     orgMoveChecker:function(a,desire){
@@ -335,8 +325,7 @@ pond = {
         }
         return (this.map[a][MAP_TYPE] == MAP_TYPE_MATERIAL && desire == this.map[a][MAP_ITEM]);
     },
-    orgMove:function(i){
-        var o = this.map[i][MAP_ITEM];
+    orgMove:function(i,o){
         if(o[ORG_TYPE] == ORG_TYPE_PRODUCER) return i;
 
         //var cxy = helpers.indexToCart(i);
@@ -397,11 +386,8 @@ pond = {
         this.map[i] = tmp;
         return sides[moved];
     },
-    orgEat:function(i){
-        var o = this.map[i][MAP_ITEM];
-        
+    orgEat:function(i,o){
         this.setWall();
-
         var sides = helpers.getSides(i).sort(function(){ return 0.5 - Math.random() });
         if(o[ORG_TYPE] == ORG_TYPE_PRODUCER){
             for(var s in sides){
@@ -423,11 +409,8 @@ pond = {
         } else alert('UNKNOWN organism TYPE');
 
     },
-    orgInteract:function(i){
+    orgInteract:function(i,o){
         this.setWall();
-        //TODO Implement Passive and Aggressive interactions
-        // return;
-        var o = this.map[i][MAP_ITEM];
         var sides = helpers.getSides(i);
         sides.sort(function(){ return 0.5 - Math.random(); });
         for(var s in sides){
@@ -443,10 +426,10 @@ pond = {
                     this.orgShare(o,so);
                     break;
                 case ORG_DEMEANOR_PASSIVE:
-
+                    // TODO
                     break;
                 case ORG_DEMEANOR_AGGRESSIVE:
-
+                    // TODO
                     break;
             }
         }
@@ -467,25 +450,15 @@ pond = {
         }
 
     },
-    orgProduce:function(i){
-        //TODO look over and improve
-        var o = this.map[i][MAP_ITEM];
+    orgProduce:function(i,o){
         if(o[ORG_TYPE] == ORG_TYPE_PRODUCER && o[ORG_RAWSTOR] > 1 && o[ORG_ATTR][ORG_ATTR_MAXSTRENGTH] - o[ORG_STRENGTH] > 10){
             o[ORG_RAWSTOR] = (o[ORG_RAWSTOR]-1);
             o[ORG_REFINEDSTOR] = (o[ORG_REFINEDSTOR]+1);
             o[ORG_DIDCONVERT]=true;
         }
-        // Current dont need because consumers do not excret
-        // else if(o[ORG_TYPE] == ORG_TYPE_CONSUMER && o[ORG_REFINEDSTOR] <= 0){
-        //     o[ORG_REFINEDSTOR] = o[ORG_REFINEDSTOR]-1;
-        //     o[ORG_RAWSTOR] = o[ORG_RAWSTOR]+1;
-        //     o[ORG_DIDCONVERT]=true;
-        // }
     },
-    orgExcrete:function(i){
+    orgExcrete:function(i,o){
         this.setWall();
-        //TODO Look over and check this.
-        var o = this.map[i][MAP_ITEM];
         if(o[ORG_TYPE] == ORG_TYPE_PRODUCER && o[ORG_REFINEDSTOR] >= 20){
             var sides = helpers.getSides(i);
             sides.sort(function(){ return .5 - Math.random(); });
@@ -498,9 +471,7 @@ pond = {
             }
         }
     },
-    orgLife:function(i){
-        var o = this.map[i][MAP_ITEM];
-
+    orgLife:function(i,o){
         var gain = false;
         if(o[ORG_TYPE] == ORG_TYPE_PRODUCER && o[ORG_DIDCONVERT]) gain = true;
         else if(o[ORG_TYPE] == ORG_TYPE_CONSUMER && o[ORG_DIDCONSUME]) gain = true;
@@ -524,9 +495,8 @@ pond = {
             else this.map[i]=[maptype,o[ORG_DESIRE]];
         }
     },
-    orgReproduce:function(i){
+    orgReproduce:function(i,o){
         this.setWall();
-        var o = this.map[i][MAP_ITEM];
         if(!helpers.chance(o[ORG_ATTR][ORG_ATTR_REPOCHANCE]) || o[ORG_STRENGTH] < o[ORG_ATTR][ORG_ATTR_REPOAT]) return;
 
         var sides = helpers.getSides(i);
@@ -557,7 +527,6 @@ pond = {
         if(this.singleRender) this.renderOne(possible[0]);
     },
     render:function(){
-        //this.rendering = new ArrayBuffer(this.total*5);
         bytes= new Uint8Array(pond.total*4);
         var colormap = [];
         var tmp;
