@@ -8,7 +8,7 @@ Play with it at [mrkmg.github.io/ColorPond](http://mrkmg.github.io/ColorPond)
 Usage
 -----
 
-Open index.html in Chrome (Other browsers may work as well), set your desired options, and click "go"!
+Open the above link in Chrome, set your desired options, and click "go"! Due to security restrictions in Chrome, you can not run it through file://. You must access it through a http interface.
 
 
 Options
@@ -49,8 +49,10 @@ I plan to keep on working on this indefinitely. I have MANY MANY ideas on how to
 TODO LIST
 =========
 
-- ~~Implement data crunching in a web-worker seperate from ui thread~~
 - Implement aggressive organisms
-- ~~Implement a more realistic "flow", aka currents and whirlpools~~
 - Optimization of the Consumer Pathfinding algorithm
+- Create 2 new types of organism: Virus and Carvinor.
+- Add more flow types
 - Create proper objects to represent the Pond, Resources, Materials, and the Organisms
+- ~~Implement data crunching in a web-worker seperate from ui thread~~
+- ~~Implement a more realistic "flow", aka currents and whirlpools~~
