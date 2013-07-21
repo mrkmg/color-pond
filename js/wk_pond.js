@@ -22,14 +22,12 @@ self.addEventListener('message', function(e) {
         switch(data){
             case 'river':
                 pond.currentFlow = flows.river(pond.width,pond.height);
-                helpers.wrapAround = true;
                 break;
             case 'spiral':
                 pond.currentFlow = flows.sin(pond.width,pond.height);
-                helpers.wrapAround = true;
                 break;
             case 'random':
-
+                pond.currentFlow = flows.random(pond.width,pond.height);
                 break;
         }
         break;
@@ -112,6 +110,7 @@ ORG_DIDCONSUME =   7;
 ORG_DEMEANOR =     8;
 ORG_ATTR =         9;
 ORG_DIDCONVERT =      10;
+ORG_LIFESPAN =      11;
 
     ORG_TYPE_PRODUCER =         0;
     ORG_TYPE_CONSUMER =         1;
@@ -170,9 +169,11 @@ pond = {
     flowChance:3,
     producerSpawnChance:100,
     consumerSpawnChance:20,
-    resouceThreshold:30,
+    resouceThreshold:10,
     singleRender:false,
     resourceSpawnChance:90,
+    pLifeGain:40,
+    cLifeGain:7,
     wallType:MAP_TYPE_WALL,
     width:5,
     height:5,
@@ -235,7 +236,7 @@ pond = {
         this.unsetWall();
     },
     setWall:function(){
-        this.map[this.total] = [MAP_TYPE_WALL];
+        this.map[this.total] = MAP_TYPE_WALL; //TEST
     },
     unsetWall:function(){
         this.map.splice(this.total,1);
@@ -319,10 +320,6 @@ pond = {
         }
     },
     orgMoveChecker:function(a,desire){
-        if(a > this.total){
-            // TODO CHECK WHY!!!!!!!!!!! IM SO CONFUSED console.log(a);
-            return false;
-        }
         return (this.map[a][MAP_TYPE] == MAP_TYPE_MATERIAL && desire == this.map[a][MAP_ITEM]);
     },
     orgMove:function(i,o){
@@ -377,10 +374,11 @@ pond = {
         }
         var sides = helpers.getSides(i);
         for(var cc=0;cc<4;cc++){
-            if(this.map[sides[moved]][MAP_TYPE] != MAP_TYPE_ORGANISM && this.map[sides[moved]][MAP_TYPE] != MAP_TYPE_WALL) break;
+            if([MAP_TYPE_EMPTY,MAP_TYPE_RESOURCE,MAP_TYPE_MATERIAL].indexOf(this.map[sides[moved]][MAP_TYPE]) >= 0) break;
             moved = Math.floor(Math.random()*4);
             if(cc == 3) return i;
         }
+        if(this.map[sides[moved]][MAP_TYPE] == MAP_TYPE_WALL) console.log('WHGGY');
         var tmp = this.map[sides[moved]];
         this.map[sides[moved]] = this.map[i];
         this.map[i] = tmp;
@@ -476,11 +474,16 @@ pond = {
         if(o[ORG_TYPE] == ORG_TYPE_PRODUCER && o[ORG_DIDCONVERT]) gain = true;
         else if(o[ORG_TYPE] == ORG_TYPE_CONSUMER && o[ORG_DIDCONSUME]) gain = true;
 
-        if(gain){
-            if(o[ORG_STRENGTH] < o[ORG_ATTR][ORG_ATTR_MAXSTRENGTH]) o[ORG_STRENGTH]+=10;
+        if(gain && o[ORG_STRENGTH] < o[ORG_ATTR][ORG_ATTR_MAXSTRENGTH]){
+            if(o[ORG_TYPE] == ORG_TYPE_PRODUCER && o[ORG_DIDCONVERT]) o[ORG_STRENGTH]+=this.pLifeGain;
+        else if(o[ORG_TYPE] == ORG_TYPE_CONSUMER && o[ORG_DIDCONSUME] )o[ORG_STRENGTH]+=this.cLifeGain;
         } else{
             o[ORG_STRENGTH]-=1;
         }
+
+        o[ORG_LIFESPAN]--;
+        if(o[ORG_LIFESPAN] == 0) o[ORG_STRENGTH]=0;
+
         if(o[ORG_STRENGTH] < 0){
             var maptype=MAP_TYPE_EMPTY;
             var mapitem=null;
@@ -509,6 +512,7 @@ pond = {
         o[ORG_RAWSTOR] = Math.floor(o[ORG_RAWSTOR]*0.5);
         o[ORG_REFINEDSTOR] = Math.floor(o[ORG_REFINEDSTOR]*0.5);
         var newo = deepCopy(o);
+        newo[ORG_LIFESPAN]=300;
         if(helpers.chance(this.mutationChance)){
             newo[ORG_ID] = this.org_id_max; this.org_id_max++;
             newo[ORG_ATTR][ORG_ATTR_REPOCHANCE]+=Math.floor(Math.random()*3)-1;
@@ -570,7 +574,7 @@ pond = {
         this.unsetWall();
         this.clearListsCounts();
         for(var i in this.map){
-            if(this.map[i][MAP_TYPE] == MAP_TYPE_WALL) this.map[i][MAP_TYPE] = this.map[i][MAP_TYPE_EMPTY];
+            if(this.map[i][MAP_TYPE] == MAP_TYPE_WALL) this.map[i] = [MAP_TYPE_EMPTY];
             var type = this.map[i][MAP_TYPE];
             this.lists[type].push(parseInt(i));
             this.currents[type]++;
@@ -599,6 +603,7 @@ pond = {
         o[ORG_STRENGTH] = 50;
         o[ORG_DIDCONSUME] = false;
         o[ORG_DEMEANOR] = ORG_DEMEANOR_HELPFUL;
+        o[ORG_LIFESPAN] = 300;
         o[ORG_ATTR] = [];
         o[ORG_ATTR][ORG_ATTR_REPOCHANCE] = 2;
         o[ORG_ATTR][ORG_ATTR_REPOAT] = 100;

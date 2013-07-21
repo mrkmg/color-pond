@@ -8,6 +8,7 @@ helpers = {
         this.width = width;
         this.height = height;
         this.total = width*height;
+        console.log(this.total);
     },
     indexToCart:function(i){
         var x = i%this.width;
@@ -30,8 +31,8 @@ helpers = {
             r = (i.mod(this.width) == this.width-1)?this.total:(i+1);
             u = (i+this.width);
             d = (i-this.width);
-            u = u>this.total?this.total:u;
-            d = d<0?this.total:d;
+            if(u > this.total) u = this.total;
+            if(d < 0) d = this.total;
         }
         return [r,u,l,d];
     },
@@ -54,14 +55,16 @@ helpers = {
         } else {
             switch(d){
                 case 0:
-                    return (i.mod(this.width)+l>this.width-1)?this.total:(i+l);
+                    var xy = helpers.indexToCart(i);
+                    return xy[0]+l>=this.width?this.total:helpers.cartToIndex(xy[0]+1,xy[1]);
                     break;
                 case 1:
                     var up = (i+(this.width*l));
                     return up>this.total?this.total:up;
                     break;
                 case 2:
-                    return (i.mod(this.width)-l<0)?this.total:(i-l);
+                    var xy = helpers.indexToCart(i);
+                    return xy[0]-l<0?this.total:helpers.cartToIndex(xy[0]-1,xy[1]);
                     break;
                 case 3:
                     var dw = (i-(this.width*l));

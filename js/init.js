@@ -73,10 +73,11 @@ $(document).ready(function(){
         request('getOption','producerSpawnChance');
         request('getOption','consumerSpawnChance');
         request('getOption','mutationChance');
-        request('getOption','resourceSpawnChance');
         request('getOption','resouceThreshold');
         request('getOption','stepWait');
         request('getOption','cellWall');
+        request('getOption','pLifeGain');
+        request('getOption','cLifeGain');
 
         $('#prefilter').val(draw.prefilter);
         $('#prefilter').change(function(ev){
@@ -140,7 +141,7 @@ $(document).ready(function(){
             $('#totalarea').text(parseInt($('#height').val())*parseInt($('#width').val()));
         });
 
-        $('#cellWall, #flowChance, #producerSpawnChance, #consumerSpawnChance, #mutationChance, #resourceSpawnChance, #resouceThreshold, #plantStartMoveChance, #bulkOdd, #stepWait').change(function(){
+        $('#flowChance, #producerSpawnChance, #consumerSpawnChance, #mutationChance, #resouceThreshold, #plantStartMoveChance, #pLifeGain, #cLifeGain, #stepWait').change(function(){
             var id = $(this).attr('id');
             request('setOption',{option:id,value:$(this).val()});
         });
