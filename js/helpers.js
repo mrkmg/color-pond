@@ -8,7 +8,6 @@ helpers = {
         this.width = width;
         this.height = height;
         this.total = width*height;
-        console.log(this.total);
     },
     indexToCart:function(i){
         var x = i%this.width;
