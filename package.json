@@ -1,0 +1,25 @@
+{
+  "name": "color-pond",
+  "version": "0.0.1",
+  "description": "A Pond of Color",
+  "main": "index.js",
+  "scripts": {
+    "compile-main": "browserify -t coffeeify --extension='.coffee' src/main.coffee > build/main.js",
+    "compile-process": "browserify -t coffeeify --extension='.coffee' src/process.coffee > build/process.js",
+    "compile-all": "npm run compile-main && npm run compile-process",
+    "compile-watch": "fsmonitor -s -p -d src/ '+*.coffee' npm run compile-all",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "GPL-3.0",
+  "dependencies": {
+    "bluebird": "^3.3.1",
+    "browserify": "^13.0.0",
+    "catiline": "^2.9.3",
+    "coffeeify": "^2.0.1",
+    "dexie": "^1.2.0",
+    "fsmonitor": "^0.2.4",
+    "paralleljs": "^0.2.1",
+    "webworkify": "^1.1.0"
+  }
+}
