@@ -20,6 +20,29 @@ module.exports = function() {
 
 
 },{}],2:[function(require,module,exports){
+module.exports = function() {
+  var dx, dy, ideal, s1, s2, s3, screenX, screenY;
+  ideal = 90000;
+  screenX = window.innerWidth;
+  screenY = window.innerHeight;
+  if (screenX > screenY) {
+    s1 = Math.round((screenX / screenY) * 100) / 100;
+    s2 = Math.floor(ideal / s1);
+    s3 = Math.floor(Math.sqrt(s2));
+    dx = Math.floor(s1 * s3);
+    dy = s3;
+  } else {
+    s1 = Math.round((screenY / screenX) * 100) / 100;
+    s2 = Math.floor(ideal / s1);
+    s3 = Math.floor(Math.sqrt(s2));
+    dy = Math.floor(s1 * s3);
+    dx = s3;
+  }
+  return [dx, dy];
+};
+
+
+},{}],3:[function(require,module,exports){
 var canvas, context, image_data;
 
 canvas = document.getElementById('main');
@@ -48,20 +71,20 @@ module.exports.writeImage = function(data) {
 };
 
 
-},{}],3:[function(require,module,exports){
+},{}],4:[function(require,module,exports){
 
 /*
   Color Pond
  */
-var fps, fps_target, render, worker, x, y;
+var fps, fps_target, ref, render, worker, x, y;
 
 render = require('./lib/render');
 
 fps = require('./lib/fps')();
 
-x = 250;
+ref = require('./lib/optimalResolution')(), x = ref[0], y = ref[1];
 
-y = 250;
+console.log(x, y);
 
 fps_target = 20;
 
@@ -92,4 +115,4 @@ setInterval((function() {
 }), 1000 / fps_target);
 
 
-},{"./lib/fps":1,"./lib/render":2}]},{},[3]);
+},{"./lib/fps":1,"./lib/optimalResolution":2,"./lib/render":3}]},{},[4]);

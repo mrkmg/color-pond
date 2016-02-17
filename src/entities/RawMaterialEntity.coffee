@@ -6,7 +6,6 @@ class RawMaterialEntity extends FlowingEntity
   constructor: ->
     super
     @type = Math.floor(Math.random()*3)
-    @is_moveable = true
     switch @type
       when 0
         @color = [0, 200, 255, 255]

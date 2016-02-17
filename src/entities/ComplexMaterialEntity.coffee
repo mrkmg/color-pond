@@ -3,10 +3,10 @@ FlowingEntity = require './FlowingEntity'
 class ComplexMaterialEntity extends FlowingEntity
   name: 'ComplexMaterial'
 
-  constructor: ->
+  constructor: (@type = false)->
     super
-    @type = Math.floor(Math.random()*3)
-    @is_moveable = false
+    if @type == false
+      @type = Math.floor(Math.random()*3)
     switch @type
       when 0
         @color = [255, 200, 0, 255]

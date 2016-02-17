@@ -11,57 +11,40 @@ class Map
 
   _tick: 0
 
-  _pointToIndex: (x, y) -> x * @width + y
+  _pointToIndex: (x, y) -> x + @width * y
   _indexToPoint: (index) -> [index % @width, Math.floor(index / @width)]
   _image: null
   _counts: {Base:0, Empty:0, RawMaterial:0, Roaming:0, ComplexMaterial:0, Producer:0}
-  _raw_ratio: .05
-  _complex_ratio: .01
+  _material_ratio: .05
   _roamer_ratio: .0001
   _producer_ratio: .001
 
-
-  _checkRawRatio: ->
-    target_count = Math.floor(@_raw_ratio * @_map.length) - @_counts.RawMaterial
-    if target_count > 0
-      (
-        loop
-          i = Math.floor(Math.random() * (@_map.length-1))
-          break unless @getEntityAtIndex(i)?.name is not 'Empty'
-        @assignEntityToIndex(i, new RawMaterialEntity(), true)
-      ) for [0 .. target_count]
-
-  _checkComplexRatio: ->
-    target_count = Math.floor(@_complex_ratio * @_map.length) - @_counts.ComplexMaterial
-    if target_count > 0
-      (
-        loop
-          i = Math.floor(Math.random() * (@_map.length-1))
-          break unless @getEntityAtIndex(i)?.name is not 'Empty'
-        @assignEntityToIndex(i, new ComplexMaterialEntity(), true)
-      ) for [0 .. target_count]
+  _checkMaterialRatio: ->
+    current_count = @_counts.RawMaterial + @_counts.ComplexMaterial
+    target_count = Math.floor(@_material_ratio * @_map.length)
+    if current_count < target_count
+      loop
+        i = Math.floor(Math.random() * (@_map.length-1))
+        break unless @getEntityAtIndex(i)?.name is not 'Empty'
+      @assignEntityToIndex(i, new RawMaterialEntity(), true)
 
   _checkRoamerRatio: ->
-    target_count = Math.floor(@_roamer_ratio * @_map.length) - @_counts.Roaming
-    if target_count > 0
-      console.log target_count
-      (
-        loop
-          i = Math.floor(Math.random() * (@_map.length-1))
-          break unless @getEntityAtIndex(i)?.name is not 'Empty'
-        @assignEntityToIndex(i, new RoamingEntity(), true)
-      ) for [0 .. target_count]
+    current_count = @_counts.Roaming
+    target_count = Math.floor(@_roamer_ratio * @_map.length)
+    if current_count < target_count
+      loop
+        i = Math.floor(Math.random() * (@_map.length-1))
+        break unless @getEntityAtIndex(i)?.name is not 'Empty'
+      @assignEntityToIndex(i, new RoamingEntity(), true)
 
   _checkProducerRatio: ->
-    target_count = Math.floor(@_producer_ratio * @_map.length) - @_counts.Producer
-    if target_count > 0
-      console.log target_count
-      (
-        loop
-          i = Math.floor(Math.random() * (@_map.length-1))
-          break unless @getEntityAtIndex(i)?.name is not 'Empty'
-        @assignEntityToIndex(i, new ProducerEntity(), true)
-      ) for [0 .. target_count]
+    current_count = @_counts.Producer
+    target_count = Math.floor(@_producer_ratio * @_map.length)
+    if current_count < target_count
+      loop
+        i = Math.floor(Math.random() * (@_map.length-1))
+        break unless @getEntityAtIndex(i)?.name is not 'Empty'
+      @assignEntityToIndex(i, new ProducerEntity(), true)
 
   #publics
   constructor: (@width, @height) ->
@@ -70,14 +53,11 @@ class Map
     @assignEntityToIndex(i, new EmptyEntity(), true) for i in [0 .. @width*@height - 1]
 
   tick: ->
-    @_checkRawRatio()
+    @_checkMaterialRatio()
     @_checkRoamerRatio()
-#    @_checkComplexRatio()
     @_checkProducerRatio()
-
-    @_tick++
-
     entity.tick() for entity in (if @_tick % 2 is 0 then @_map.slice() else @_map.slice().reverse())
+    @_tick++
 
   getRender: ->
     @_image
@@ -86,10 +66,10 @@ class Map
     @getEntityAtIndex(@_pointToIndex(x, y))
 
   getEntityAtIndex: (index) ->
-    if @_map[index]?
-      @_map[index]
-    else
-      false
+    if @_map[index]? then @_map[index] else false
+
+  getEntitiesInRange: (index_min, index_max) ->
+    @_map.slice(index_min, index_max+1)
 
   swapEntities: (index1, index2) ->
     ent1 = @getEntityAtIndex index1
@@ -104,15 +84,19 @@ class Map
       when 'up'
         if index > @width - 1
           @getEntityAtIndex(index - @width)
+        else false
       when 'down'
         if index < @_map.length - 1
           @getEntityAtIndex(index + @width)
+        else false
       when 'left'
         if index % @width > 0
           @getEntityAtIndex(index - 1)
+        else false
       when 'right'
         if index % @width < @width - 1
           @getEntityAtIndex(index + 1)
+        else false
 
   assignEntityToIndex: (index, entity, is_new = false) ->
     current_entity = @getEntityAtIndex(index)

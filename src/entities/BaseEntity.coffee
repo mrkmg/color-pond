@@ -9,10 +9,12 @@ class BaseEntity
   init: (map, index) ->
     @map = map
     @map_index = index
+    [@map_x, @map_y] = @map._indexToPoint(index)
     @setColor @color[0], @color[1], @color[2], @color[3]
 
   moved: (new_index) ->
     @map_index = new_index
+    [@map_x, @map_y] = @map._indexToPoint(new_index)
     @setColor @color[0], @color[1], @color[2], @color[3]
 
   setColor: (r, g, b, a) ->

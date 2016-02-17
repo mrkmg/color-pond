@@ -8,7 +8,6 @@ map_tick_int = -1;
 tick = ->
   map.tick()
   fps.tick()
-  if running then setTimeout tick, 10
 
 init = (width, height) ->
   map = new Map width, height
@@ -17,11 +16,12 @@ init = (width, height) ->
 start = ->
   running = true
   self.postMessage ['started']
-  tick()
+  clearInterval map_tick_int
+  map_tick_int = setInterval tick, 25
 
 stop = ->
-  running = falsethen
-  clearTimeout map_tick_int
+  running = false
+  clearInterval map_tick_int
   self.postMessage ['stopped']
 
 sendImageData = ->

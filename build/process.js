@@ -11,13 +11,17 @@ BaseEntity = (function() {
   }
 
   BaseEntity.prototype.init = function(map, index) {
+    var ref;
     this.map = map;
     this.map_index = index;
+    ref = this.map._indexToPoint(index), this.map_x = ref[0], this.map_y = ref[1];
     return this.setColor(this.color[0], this.color[1], this.color[2], this.color[3]);
   };
 
   BaseEntity.prototype.moved = function(new_index) {
+    var ref;
     this.map_index = new_index;
+    ref = this.map._indexToPoint(new_index), this.map_x = ref[0], this.map_y = ref[1];
     return this.setColor(this.color[0], this.color[1], this.color[2], this.color[3]);
   };
 
@@ -56,10 +60,12 @@ ComplexMaterialEntity = (function(superClass) {
 
   ComplexMaterialEntity.prototype.name = 'ComplexMaterial';
 
-  function ComplexMaterialEntity() {
+  function ComplexMaterialEntity(type) {
+    this.type = type != null ? type : false;
     ComplexMaterialEntity.__super__.constructor.apply(this, arguments);
-    this.type = Math.floor(Math.random() * 3);
-    this.is_moveable = false;
+    if (this.type === false) {
+      this.type = Math.floor(Math.random() * 3);
+    }
     switch (this.type) {
       case 0:
         this.color = [255, 200, 0, 255];
@@ -86,7 +92,7 @@ var BaseEntity, EmptyEntity, maxBrightness, minBrightness,
 
 BaseEntity = require('./BaseEntity');
 
-minBrightness = 10;
+minBrightness = 0;
 
 maxBrightness = 20;
 
@@ -97,18 +103,11 @@ EmptyEntity = (function(superClass) {
 
   function EmptyEntity() {
     EmptyEntity.__super__.constructor.call(this);
-    this.color = [25, 25, 25, 255];
+    this.color = [0, 0, 0, 255];
   }
 
   EmptyEntity.prototype.tick = function() {
-    var colors, current_color, increment, ind;
-    colors = this.color.concat();
-    ind = Math.floor(Math.random() * 3);
-    current_color = colors[ind];
-    increment = (Math.floor(Math.random() * 3) - 1) * 3;
-    colors[ind] = Math.min(maxBrightness, Math.max(minBrightness, current_color + increment));
-    this.setColor(colors[0], colors[1], colors[2], colors[3]);
-    return EmptyEntity.__super__.tick.call(this);
+    return EmptyEntity.__super__.tick.call(this) && false;
   };
 
   return EmptyEntity;
@@ -147,7 +146,7 @@ module.exports = FlowingEntity;
 
 
 },{"./BaseEntity":1}],5:[function(require,module,exports){
-var BaseEntity, EmptyEntity, ProducerEntity, shuffle,
+var BaseEntity, EmptyEntity, LivingEntity,
   extend = function(child, parent) { for (var key in parent) { if (hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; },
   hasProp = {}.hasOwnProperty;
 
@@ -155,35 +154,76 @@ BaseEntity = require('./BaseEntity');
 
 EmptyEntity = require('./EmptyEntity');
 
-shuffle = function(array) {
-  var counter, index, temp;
-  counter = array.length;
-  while (counter > 0) {
-    index = Math.floor(Math.random() * counter);
-    counter--;
-    temp = array[counter];
-    array[counter] = array[index];
-    array[index] = temp;
+LivingEntity = (function(superClass) {
+  extend(LivingEntity, superClass);
+
+  function LivingEntity() {
+    LivingEntity.__super__.constructor.apply(this, arguments);
+    this.max_health = 400;
   }
-  return array;
-};
+
+  LivingEntity.prototype.died = function() {};
+
+  LivingEntity.prototype.tick = function() {
+    return LivingEntity.__super__.tick.call(this) && (this.health--, this.health <= 0 ? (this.map.assignEntityToIndex(this.map_index, new EmptyEntity(), true), this.died(), false) : (this.setColor(this.color[0], this.color[1], this.color[2], Math.min(255, 55 + Math.round((this.health / this.max_health) * 200))), true));
+  };
+
+  return LivingEntity;
+
+})(BaseEntity);
+
+module.exports = LivingEntity;
+
+
+},{"./BaseEntity":1,"./EmptyEntity":3}],6:[function(require,module,exports){
+var ComplexMaterialEntity, EmptyEntity, LivingEntity, ProducerEntity, life_gain_per_food, life_to_reproduce, shuffle,
+  extend = function(child, parent) { for (var key in parent) { if (hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; },
+  hasProp = {}.hasOwnProperty;
+
+LivingEntity = require('./LivingEntity');
+
+EmptyEntity = require('./EmptyEntity');
+
+ComplexMaterialEntity = require('./ComplexMaterialEntity');
+
+shuffle = require('../lib/shuffleArray');
+
+life_gain_per_food = 200;
+
+life_to_reproduce = 500;
 
 ProducerEntity = (function(superClass) {
   extend(ProducerEntity, superClass);
 
   ProducerEntity.prototype.name = 'Producer';
 
-  function ProducerEntity() {
+  function ProducerEntity(wants, makes) {
+    this.wants = wants != null ? wants : false;
+    this.makes = makes != null ? makes : false;
     ProducerEntity.__super__.constructor.apply(this, arguments);
     this.is_moveable = false;
     this.color = [0, 255, 0, 255];
-    this.health = 300;
-    this.wants = Math.floor(Math.random() * 3);
-    this.makes = Math.floor(Math.random() * 3);
+    this.health = 400;
+    this.max_health = 800;
+    if (this.wants === false) {
+      this.wants = Math.floor(Math.random() * 3);
+    }
+    if (this.makes === false) {
+      this.makes = Math.floor(Math.random() * 3);
+    }
   }
 
+  ProducerEntity.prototype.transferHealth = function(target_entity) {
+    var to_transfer;
+    if (this.health > target_entity.health) {
+      to_transfer = Math.floor((this.health - target_entity.health) / 2);
+      this.health -= to_transfer;
+      return target_entity.health += to_transfer;
+    }
+  };
+
   ProducerEntity.prototype.processSides = function() {
-    var countFriendly, entity, i, len, newPiece, ref, side;
+    var countFriendly, entity, i, len, ref, side;
     countFriendly = 0;
     ref = shuffle(['up', 'down', 'left', 'right']);
     for (i = 0, len = ref.length; i < len; i++) {
@@ -192,41 +232,39 @@ ProducerEntity = (function(superClass) {
       if (entity) {
         if (entity.name === 'Producer' && entity.wants === this.wants) {
           countFriendly++;
-          if (this.health > entity.health + 5) {
-            this.health -= 5;
-            entity.health += 5;
-          }
+          this.transferHealth(entity);
         }
-        if (entity.name === 'RawMaterial' && entity.type === this.wants) {
-          this.health += 500;
+        if (entity.name === 'RawMaterial' && entity.type === this.wants && this.health + life_gain_per_food < this.max_health) {
+          this.health += life_gain_per_food;
           this.map.assignEntityToIndex(entity.map_index, new EmptyEntity(), true);
         }
-        if (entity.name === 'Empty' && this.health > 600) {
-          newPiece = new ProducerEntity();
-          newPiece.wants = this.wants;
-          newPiece.makes = this.makes;
-          this.map.assignEntityToIndex(entity.map_index, newPiece, true);
+        if (entity.name === 'Empty' && this.health > life_to_reproduce && Math.random() > .8) {
+          this.map.assignEntityToIndex(entity.map_index, new ProducerEntity(this.wants, this.makes), true);
         }
       }
     }
     return {
-      countFriendly: countFriendly
+      friendly: countFriendly
     };
+  };
+
+  ProducerEntity.prototype.died = function() {
+    return this.map.assignEntityToIndex(this.map_index, new ComplexMaterialEntity(this.makes), true);
   };
 
   ProducerEntity.prototype.tick = function() {
     var counts;
-    return ProducerEntity.__super__.tick.call(this) && (counts = this.processSides(), counts.countFriendly < 4 ? this.health-- : void 0, this.health <= 0 ? this.map.assignEntityToIndex(this.map_index, new EmptyEntity(), true) : void 0, this.setColor(this.color[0], this.color[1], this.color[2], Math.min(255, Math.round((this.health / 500) * 255))));
+    return ProducerEntity.__super__.tick.call(this) && (counts = this.processSides(), counts.friendly === 4 ? this.health++ : void 0);
   };
 
   return ProducerEntity;
 
-})(BaseEntity);
+})(LivingEntity);
 
 module.exports = ProducerEntity;
 
 
-},{"./BaseEntity":1,"./EmptyEntity":3}],6:[function(require,module,exports){
+},{"../lib/shuffleArray":12,"./ComplexMaterialEntity":2,"./EmptyEntity":3,"./LivingEntity":5}],7:[function(require,module,exports){
 var FlowingEntity, RawMaterialEntity,
   extend = function(child, parent) { for (var key in parent) { if (hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; },
   hasProp = {}.hasOwnProperty;
@@ -241,7 +279,6 @@ RawMaterialEntity = (function(superClass) {
   function RawMaterialEntity() {
     RawMaterialEntity.__super__.constructor.apply(this, arguments);
     this.type = Math.floor(Math.random() * 3);
-    this.is_moveable = true;
     switch (this.type) {
       case 0:
         this.color = [0, 200, 255, 255];
@@ -261,41 +298,109 @@ RawMaterialEntity = (function(superClass) {
 module.exports = RawMaterialEntity;
 
 
-},{"./FlowingEntity":4}],7:[function(require,module,exports){
-var BaseEntity, RoamingEntity,
+},{"./FlowingEntity":4}],8:[function(require,module,exports){
+var EmptyEntity, LivingEntity, RoamingEntity, search_radius, shuffle,
   extend = function(child, parent) { for (var key in parent) { if (hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; },
   hasProp = {}.hasOwnProperty;
 
-BaseEntity = require('./BaseEntity');
+LivingEntity = require('./LivingEntity');
+
+EmptyEntity = require('./EmptyEntity');
+
+shuffle = require('../lib/shuffleArray');
+
+search_radius = 10;
 
 RoamingEntity = (function(superClass) {
   extend(RoamingEntity, superClass);
 
   RoamingEntity.prototype.name = 'Roaming';
 
-  function RoamingEntity() {
+  function RoamingEntity(wants) {
+    this.wants = wants != null ? wants : false;
     RoamingEntity.__super__.constructor.call(this);
+    this.max_health = 400;
     this.is_moveable = false;
+    if (this.wants === false) {
+      this.wants = Math.floor(Math.random() * 3);
+    }
+    this.health = 300;
     this.color = [255, 255, 255, 255];
   }
 
-  RoamingEntity.prototype.tick = function() {
-    var direction, entity;
-    direction = ['up', 'down', 'left', 'right'][Math.floor(Math.random() * 4)];
+  RoamingEntity.prototype.consumeMaterial = function() {
+    var entity, i, len, ref, results, side;
+    ref = shuffle(['up', 'down', 'left', 'right']);
+    results = [];
+    for (i = 0, len = ref.length; i < len; i++) {
+      side = ref[i];
+      results.push((entity = this.map.getEntityAtDirection(this.map_index, side), entity ? entity.name === 'ComplexMaterial' && entity.type === this.wants ? (this.map.assignEntityToIndex(entity.map_index, new EmptyEntity(), true), this.health += 50) : void 0 : void 0));
+    }
+    return results;
+  };
+
+  RoamingEntity.prototype.doMovement = function() {
+    var all_entities, direction, dx, dy, entity, filtered_entities, i, ref, ref1, self, target_entity, x_neg, x_pos, y, y_neg, y_pos;
+    self = this;
+    x_neg = Math.max(this.map_x - search_radius, 0);
+    y_neg = Math.max(this.map_y - search_radius, 0);
+    x_pos = Math.min(this.map_x + search_radius, this.map.width);
+    y_pos = Math.min(this.map_y + search_radius, this.map.height);
+    all_entities = [];
+    for (y = i = ref = y_neg, ref1 = y_pos; ref <= ref1 ? i <= ref1 : i >= ref1; y = ref <= ref1 ? ++i : --i) {
+      all_entities = all_entities.concat(self.map.getEntitiesInRange(self.map._pointToIndex(x_neg, y), self.map._pointToIndex(x_pos, y)));
+    }
+    filtered_entities = all_entities.filter(function(entity) {
+      return entity.name === 'ComplexMaterial' && entity.type === self.wants;
+    });
+    filtered_entities.sort(function(ent_a, ent_b) {
+      var a_distance, b_distance;
+      a_distance = Math.sqrt(Math.pow(ent_a.map_x - self.map_x, 2) + Math.pow(ent_a.map_y - self.map_y, 2));
+      b_distance = Math.sqrt(Math.pow(ent_b.map_x - self.map_x, 2) + Math.pow(ent_b.map_y - self.map_y, 2));
+      if (a_distance < b_distance) {
+        return -1;
+      } else if (a_distance > b_distance) {
+        return 1;
+      } else {
+        return 0;
+      }
+    });
+    direction = (filtered_entities.length ? (target_entity = filtered_entities[0], dx = target_entity.map_x - self.map_x, dy = target_entity.map_y - self.map_y, Math.abs(dx) > Math.abs(dy) ? dx > 0 ? 'right' : 'left' : dy > 0 ? 'down' : 'up') : ['up', 'down', 'left', 'right'][Math.floor(Math.random() * 4)]);
     entity = this.map.getEntityAtDirection(this.map_index, direction);
     if (entity && entity.is_moveable) {
       return this.map.swapEntities(this.map_index, entity.map_index);
     }
   };
 
+  RoamingEntity.prototype.reproduce = function() {
+    var entity, i, len, ref, side;
+    if (this.health > 400) {
+      ref = shuffle(['up', 'down', 'left', 'right']);
+      for (i = 0, len = ref.length; i < len; i++) {
+        side = ref[i];
+        entity = this.map.getEntityAtDirection(this.map_index, side);
+        if (entity && entity.name === 'Empty') {
+          this.map.assignEntityToIndex(entity.map_index, new RoamingEntity(this.wants), true);
+          this.health -= 200;
+          break;
+        }
+      }
+    }
+    return true;
+  };
+
+  RoamingEntity.prototype.tick = function() {
+    return RoamingEntity.__super__.tick.call(this) && (this.consumeMaterial(), this.doMovement(), this.reproduce());
+  };
+
   return RoamingEntity;
 
-})(BaseEntity);
+})(LivingEntity);
 
 module.exports = RoamingEntity;
 
 
-},{"./BaseEntity":1}],8:[function(require,module,exports){
+},{"../lib/shuffleArray":12,"./EmptyEntity":3,"./LivingEntity":5}],9:[function(require,module,exports){
 Number.prototype.mod = function(n) {
   return ((this % n) + n) % n;
 };
@@ -334,7 +439,7 @@ module.exports.spiral = function(width, height) {
 };
 
 
-},{}],9:[function(require,module,exports){
+},{}],10:[function(require,module,exports){
 module.exports = function() {
   var filter_strength, frame_time, last_loop;
   filter_strength = 20;
@@ -355,7 +460,7 @@ module.exports = function() {
 };
 
 
-},{}],10:[function(require,module,exports){
+},{}],11:[function(require,module,exports){
 var ComplexMaterialEntity, EmptyEntity, Map, ProducerEntity, RawMaterialEntity, RoamingEntity, flow;
 
 EmptyEntity = require('../entities/EmptyEntity');
@@ -376,7 +481,7 @@ Map = (function() {
   Map.prototype._tick = 0;
 
   Map.prototype._pointToIndex = function(x, y) {
-    return x * this.width + y;
+    return x + this.width * y;
   };
 
   Map.prototype._indexToPoint = function(index) {
@@ -394,97 +499,54 @@ Map = (function() {
     Producer: 0
   };
 
-  Map.prototype._raw_ratio = .05;
-
-  Map.prototype._complex_ratio = .01;
+  Map.prototype._material_ratio = .05;
 
   Map.prototype._roamer_ratio = .0001;
 
   Map.prototype._producer_ratio = .001;
 
-  Map.prototype._checkRawRatio = function() {
-    var i, j, ref, results, target_count;
-    target_count = Math.floor(this._raw_ratio * this._map.length) - this._counts.RawMaterial;
-    if (target_count > 0) {
-      results = [];
-      for (j = 0, ref = target_count; 0 <= ref ? j <= ref : j >= ref; 0 <= ref ? j++ : j--) {
-        results.push((function() {
-          var ref1;
-          while (true) {
-            i = Math.floor(Math.random() * (this._map.length - 1));
-            if (((ref1 = this.getEntityAtIndex(i)) != null ? ref1.name : void 0) !== !'Empty') {
-              break;
-            }
-          }
-          return this.assignEntityToIndex(i, new RawMaterialEntity(), true);
-        }).call(this));
+  Map.prototype._checkMaterialRatio = function() {
+    var current_count, i, ref, target_count;
+    current_count = this._counts.RawMaterial + this._counts.ComplexMaterial;
+    target_count = Math.floor(this._material_ratio * this._map.length);
+    if (current_count < target_count) {
+      while (true) {
+        i = Math.floor(Math.random() * (this._map.length - 1));
+        if (((ref = this.getEntityAtIndex(i)) != null ? ref.name : void 0) !== !'Empty') {
+          break;
+        }
       }
-      return results;
-    }
-  };
-
-  Map.prototype._checkComplexRatio = function() {
-    var i, j, ref, results, target_count;
-    target_count = Math.floor(this._complex_ratio * this._map.length) - this._counts.ComplexMaterial;
-    if (target_count > 0) {
-      results = [];
-      for (j = 0, ref = target_count; 0 <= ref ? j <= ref : j >= ref; 0 <= ref ? j++ : j--) {
-        results.push((function() {
-          var ref1;
-          while (true) {
-            i = Math.floor(Math.random() * (this._map.length - 1));
-            if (((ref1 = this.getEntityAtIndex(i)) != null ? ref1.name : void 0) !== !'Empty') {
-              break;
-            }
-          }
-          return this.assignEntityToIndex(i, new ComplexMaterialEntity(), true);
-        }).call(this));
-      }
-      return results;
+      return this.assignEntityToIndex(i, new RawMaterialEntity(), true);
     }
   };
 
   Map.prototype._checkRoamerRatio = function() {
-    var i, j, ref, results, target_count;
-    target_count = Math.floor(this._roamer_ratio * this._map.length) - this._counts.Roaming;
-    if (target_count > 0) {
-      console.log(target_count);
-      results = [];
-      for (j = 0, ref = target_count; 0 <= ref ? j <= ref : j >= ref; 0 <= ref ? j++ : j--) {
-        results.push((function() {
-          var ref1;
-          while (true) {
-            i = Math.floor(Math.random() * (this._map.length - 1));
-            if (((ref1 = this.getEntityAtIndex(i)) != null ? ref1.name : void 0) !== !'Empty') {
-              break;
-            }
-          }
-          return this.assignEntityToIndex(i, new RoamingEntity(), true);
-        }).call(this));
+    var current_count, i, ref, target_count;
+    current_count = this._counts.Roaming;
+    target_count = Math.floor(this._roamer_ratio * this._map.length);
+    if (current_count < target_count) {
+      while (true) {
+        i = Math.floor(Math.random() * (this._map.length - 1));
+        if (((ref = this.getEntityAtIndex(i)) != null ? ref.name : void 0) !== !'Empty') {
+          break;
+        }
       }
-      return results;
+      return this.assignEntityToIndex(i, new RoamingEntity(), true);
     }
   };
 
   Map.prototype._checkProducerRatio = function() {
-    var i, j, ref, results, target_count;
-    target_count = Math.floor(this._producer_ratio * this._map.length) - this._counts.Producer;
-    if (target_count > 0) {
-      console.log(target_count);
-      results = [];
-      for (j = 0, ref = target_count; 0 <= ref ? j <= ref : j >= ref; 0 <= ref ? j++ : j--) {
-        results.push((function() {
-          var ref1;
-          while (true) {
-            i = Math.floor(Math.random() * (this._map.length - 1));
-            if (((ref1 = this.getEntityAtIndex(i)) != null ? ref1.name : void 0) !== !'Empty') {
-              break;
-            }
-          }
-          return this.assignEntityToIndex(i, new ProducerEntity(), true);
-        }).call(this));
+    var current_count, i, ref, target_count;
+    current_count = this._counts.Producer;
+    target_count = Math.floor(this._producer_ratio * this._map.length);
+    if (current_count < target_count) {
+      while (true) {
+        i = Math.floor(Math.random() * (this._map.length - 1));
+        if (((ref = this.getEntityAtIndex(i)) != null ? ref.name : void 0) !== !'Empty') {
+          break;
+        }
       }
-      return results;
+      return this.assignEntityToIndex(i, new ProducerEntity(), true);
     }
   };
 
@@ -500,18 +562,16 @@ Map = (function() {
   }
 
   Map.prototype.tick = function() {
-    var entity, j, len, ref, results;
-    this._checkRawRatio();
+    var entity, j, len, ref;
+    this._checkMaterialRatio();
     this._checkRoamerRatio();
     this._checkProducerRatio();
-    this._tick++;
     ref = (this._tick % 2 === 0 ? this._map.slice() : this._map.slice().reverse());
-    results = [];
     for (j = 0, len = ref.length; j < len; j++) {
       entity = ref[j];
-      results.push(entity.tick());
+      entity.tick();
     }
-    return results;
+    return this._tick++;
   };
 
   Map.prototype.getRender = function() {
@@ -530,6 +590,10 @@ Map = (function() {
     }
   };
 
+  Map.prototype.getEntitiesInRange = function(index_min, index_max) {
+    return this._map.slice(index_min, index_max + 1);
+  };
+
   Map.prototype.swapEntities = function(index1, index2) {
     var ent1, ent2;
     ent1 = this.getEntityAtIndex(index1);
@@ -545,21 +609,29 @@ Map = (function() {
       case 'up':
         if (index > this.width - 1) {
           return this.getEntityAtIndex(index - this.width);
+        } else {
+          return false;
         }
         break;
       case 'down':
         if (index < this._map.length - 1) {
           return this.getEntityAtIndex(index + this.width);
+        } else {
+          return false;
         }
         break;
       case 'left':
         if (index % this.width > 0) {
           return this.getEntityAtIndex(index - 1);
+        } else {
+          return false;
         }
         break;
       case 'right':
         if (index % this.width < this.width - 1) {
           return this.getEntityAtIndex(index + 1);
+        } else {
+          return false;
         }
     }
   };
@@ -595,7 +667,22 @@ Map = (function() {
 module.exports = Map;
 
 
-},{"../entities/ComplexMaterialEntity":2,"../entities/EmptyEntity":3,"../entities/ProducerEntity":5,"../entities/RawMaterialEntity":6,"../entities/RoamingEntity":7,"./flow":8}],11:[function(require,module,exports){
+},{"../entities/ComplexMaterialEntity":2,"../entities/EmptyEntity":3,"../entities/ProducerEntity":6,"../entities/RawMaterialEntity":7,"../entities/RoamingEntity":8,"./flow":9}],12:[function(require,module,exports){
+module.exports = function(array) {
+  var counter, index, temp;
+  counter = array.length;
+  while (counter > 0) {
+    index = Math.floor(Math.random() * counter);
+    counter--;
+    temp = array[counter];
+    array[counter] = array[index];
+    array[index] = temp;
+  }
+  return array;
+};
+
+
+},{}],13:[function(require,module,exports){
 var Map, fps, init, map, map_tick_int, running, sendImageData, sendTPS, start, stop, tick;
 
 Map = require('./lib/map');
@@ -610,10 +697,7 @@ map_tick_int = -1;
 
 tick = function() {
   map.tick();
-  fps.tick();
-  if (running) {
-    return setTimeout(tick, 10);
-  }
+  return fps.tick();
 };
 
 init = function(width, height) {
@@ -624,12 +708,13 @@ init = function(width, height) {
 start = function() {
   running = true;
   self.postMessage(['started']);
-  return tick();
+  clearInterval(map_tick_int);
+  return map_tick_int = setInterval(tick, 25);
 };
 
 stop = function() {
-  running = falsethen;
-  clearTimeout(map_tick_int);
+  running = false;
+  clearInterval(map_tick_int);
   return self.postMessage(['stopped']);
 };
 
@@ -659,4 +744,4 @@ self.onmessage = function(e) {
 };
 
 
-},{"./lib/fps":9,"./lib/map":10}]},{},[11]);
+},{"./lib/fps":10,"./lib/map":11}]},{},[13]);

@@ -1,30 +1,30 @@
-BaseEntity = require './BaseEntity'
+LivingEntity = require './LivingEntity'
 EmptyEntity = require './EmptyEntity'
+ComplexMaterialEntity = require './ComplexMaterialEntity'
+shuffle = require '../lib/shuffleArray'
 
-shuffle = (array) ->
-  counter = array.length
-  # While there are elements in the array
-  while counter > 0
-# Pick a random index
-    index = Math.floor(Math.random() * counter)
-    # Decrease counter by 1
-    counter--
-    # And swap the last element with it
-    temp = array[counter]
-    array[counter] = array[index]
-    array[index] = temp
-  array
+life_gain_per_food = 200
+life_to_reproduce = 500
 
-class ProducerEntity extends BaseEntity
+class ProducerEntity extends LivingEntity
   name: 'Producer'
 
-  constructor: ->
+  constructor: (@wants = false, @makes = false)->
     super
     @is_moveable = false
     @color = [0, 255, 0, 255]
-    @health = 300
-    @wants = Math.floor(Math.random() * 3)
-    @makes = Math.floor(Math.random() * 3)
+    @health = 400
+    @max_health = 800
+    if @wants == false
+      @wants = Math.floor(Math.random() * 3)
+    if @makes == false
+      @makes = Math.floor(Math.random() * 3)
+
+  transferHealth: (target_entity) ->
+    if @health > target_entity.health
+      to_transfer = Math.floor((@health - target_entity.health) / 2)
+      @health -= to_transfer
+      target_entity.health += to_transfer
 
   processSides: ->
     countFriendly = 0
@@ -34,31 +34,25 @@ class ProducerEntity extends BaseEntity
       if entity
         if entity.name is 'Producer' and entity.wants is @wants
           countFriendly++
-          if @health > entity.health + 5
-            @health -= 5
-            entity.health += 5
-        if entity.name is 'RawMaterial' and entity.type is @wants
-          @health += 500
+          @transferHealth(entity)
+        if entity.name is 'RawMaterial' and entity.type is @wants and @health + life_gain_per_food < @max_health
+          @health += life_gain_per_food
           @map.assignEntityToIndex(entity.map_index, new EmptyEntity(), true)
-        if entity.name is 'Empty' and @health > 600
-          newPiece = new ProducerEntity()
-          newPiece.wants = @wants
-          newPiece.makes = @makes
-          @map.assignEntityToIndex(entity.map_index, newPiece, true)
+        if entity.name is 'Empty' and @health > life_to_reproduce and Math.random() > .8
+          @map.assignEntityToIndex(entity.map_index, new ProducerEntity(@wants, @makes), true)
     ) for side in shuffle ['up', 'down', 'left', 'right']
     {
-      countFriendly: countFriendly
+      friendly: countFriendly
     }
+
+  died: ->
+    @map.assignEntityToIndex(@map_index, new ComplexMaterialEntity(@makes), true)
 
   tick: ->
     super() and (
       counts = @processSides()
-      if counts.countFriendly < 4
-        @health--
-      if @health <= 0
-        @map.assignEntityToIndex(@map_index, new EmptyEntity(), true)
-
-      @setColor(@color[0], @color[1], @color[2], Math.min(255, Math.round((@health / 500)*255)))
+      if counts.friendly is 4
+        @health++
     )
 
 

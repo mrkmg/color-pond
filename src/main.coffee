@@ -5,8 +5,9 @@
 render = require './lib/render'
 fps = require('./lib/fps')()
 
-x = 250
-y = 250
+[x, y] = require('./lib/optimalResolution')()
+
+console.log x, y
 
 fps_target = 20
 
