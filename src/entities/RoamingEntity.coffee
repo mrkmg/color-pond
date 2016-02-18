@@ -1,19 +1,18 @@
 LivingEntity = require './LivingEntity'
 EmptyEntity = require './EmptyEntity'
 shuffle = require '../lib/shuffleArray'
+RawMaterialEntity = require './RawMaterialEntity'
 
 search_radius = 10
 
 class RoamingEntity extends LivingEntity
   name: 'Roaming'
 
-  constructor: (@wants = false)->
+  constructor: (@wants = Math.floor(Math.random()*3)) ->
     super()
-    @max_health = 400
+    @max_health = 200
     @is_moveable = false
-    if @wants == false
-      @wants = Math.floor(Math.random() * 3)
-    @health = 300
+    @health = 100
     @color = [255, 255, 255, 255]
 
   consumeMaterial: ->
@@ -22,7 +21,7 @@ class RoamingEntity extends LivingEntity
 
       if entity
         if entity.name is 'ComplexMaterial' and entity.type is @wants
-          @map.assignEntityToIndex(entity.map_index, new EmptyEntity(), true)
+          @map.assignEntityToIndex(entity.map_index, new RawMaterialEntity(@wants), true)
           @health += 50
     ) for side in shuffle ['up', 'down', 'left', 'right']
 
@@ -70,13 +69,15 @@ class RoamingEntity extends LivingEntity
       @map.swapEntities @map_index, entity.map_index
 
   reproduce: ->
-    if @health > 400
+    if @health > 200
       (
         entity = @map.getEntityAtDirection(@map_index, side)
 
         if entity and entity.name is 'Empty'
-            @map.assignEntityToIndex(entity.map_index, new RoamingEntity(@wants), true)
-            @health -= 200
+            child = new RoamingEntity(@wants)
+            child.health = 20
+            @map.assignEntityToIndex(entity.map_index, child , true)
+            @health -= 50
             break
       ) for side in shuffle ['up', 'down', 'left', 'right']
     true

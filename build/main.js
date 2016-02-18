@@ -22,7 +22,7 @@ module.exports = function() {
 },{}],2:[function(require,module,exports){
 module.exports = function() {
   var dx, dy, ideal, s1, s2, s3, screenX, screenY;
-  ideal = 90000;
+  ideal = 40000;
   screenX = window.innerWidth;
   screenY = window.innerHeight;
   if (screenX > screenY) {
@@ -43,6 +43,83 @@ module.exports = function() {
 
 
 },{}],3:[function(require,module,exports){
+var OptionManager;
+
+OptionManager = (function() {
+  function OptionManager(listener) {
+    this.listener = listener;
+    this.variables = {};
+    this.option_holder = document.getElementById('options');
+  }
+
+  OptionManager.prototype.clearOptions = function() {
+    return this.option_holder.innerHTML = "";
+  };
+
+  OptionManager.prototype.addOptions = function() {
+    var header, holder, input, label, option, options, ref, self, type, value;
+    this.clearOptions();
+    self = this;
+    ref = this.variables;
+    for (type in ref) {
+      options = ref[type];
+      holder = document.createElement('div');
+      holder.classList.add('type');
+      header = document.createElement('h2');
+      header.textContent = type;
+      holder.appendChild(header);
+      for (option in options) {
+        value = options[option];
+        label = document.createElement('label');
+        label.textContent = option.replace(/_/g, ' ');
+        label.style.textTransform = 'capitalize';
+        input = document.createElement('input');
+        input.setAttribute('type', 'number');
+        input.value = value;
+        input.dataset['type'] = type;
+        input.dataset['option'] = option;
+        input.addEventListener('input', function() {
+          var element;
+          element = this;
+          if (element.dataset.updateTimeout) {
+            clearTimeout(element.dataset.updateTimeout);
+          }
+          return element.dataset.updateTimeout = setTimeout((function() {
+            self.writeValue(element.dataset.type, element.dataset.option, element.value);
+            element.dataset.updateTimeout = null;
+            element.style.backgroundColor = '#ddd';
+            return setTimeout((function() {
+              return element.style.backgroundColor = '#fff';
+            }), 100);
+          }), 500);
+        });
+        holder.appendChild(label);
+        holder.appendChild(document.createElement('br'));
+        holder.appendChild(input);
+        holder.appendChild(document.createElement('br'));
+      }
+      this.option_holder.appendChild(holder);
+    }
+    return null;
+  };
+
+  OptionManager.prototype.writeValue = function(type, option, value) {
+    return this.listener(type, option, parseInt(value));
+  };
+
+  OptionManager.prototype.setVariables = function(variables) {
+    this.variables = variables;
+    return this.addOptions();
+  };
+
+  return OptionManager;
+
+})();
+
+module.exports = OptionManager;
+
+
+},{}],4:[function(require,module,exports){
 var canvas, context, image_data;
 
 canvas = document.getElementById('main');
@@ -53,7 +130,7 @@ context = canvas.getContext('2d');
 
 context.imageSmoothingEnabled = false;
 
-image_data = context.createImageData(1, 1);
+image_data = null;
 
 module.exports.setSize = function(x, y) {
   context.canvas.width = x;
@@ -71,16 +148,18 @@ module.exports.writeImage = function(data) {
 };
 
 
-},{}],4:[function(require,module,exports){
+},{}],5:[function(require,module,exports){
 
 /*
   Color Pond
  */
-var fps, fps_target, ref, render, worker, x, y;
+var OptionManager, fps, fps_target, optionManager, ref, render, stats, worker, x, y;
 
 render = require('./lib/render');
 
 fps = require('./lib/fps')();
+
+OptionManager = require('./lib/optionManager');
 
 ref = require('./lib/optimalResolution')(), x = ref[0], y = ref[1];
 
@@ -88,11 +167,19 @@ console.log(x, y);
 
 fps_target = 20;
 
+stats = document.getElementById('stats');
+
+stats.textContent = "TPS: ?? | FPS: ??";
+
 worker = new Worker('build/process.js');
 
 worker.postMessage(['init', x, y]);
 
 render.setSize(x, y);
+
+optionManager = new OptionManager(function(type, variable, value) {
+  return worker.postMessage(['updateVariable', type, variable, value]);
+});
 
 worker.onmessage = function(e) {
   switch (e.data[0]) {
@@ -100,9 +187,12 @@ worker.onmessage = function(e) {
       fps.tick();
       return render.writeImage(e.data[1]);
     case 'tpm':
-      return console.log("TPS: " + e.data[1] + " | FPS: " + (fps.getFps()));
+      return stats.textContent = "TPS: " + (Math.round(e.data[1])) + " | FPS: " + (Math.round(fps.getFps()));
     case 'initialized':
-      return worker.postMessage(['start']);
+      worker.postMessage(['start']);
+      return worker.postMessage(['getVariables']);
+    case 'variables':
+      return optionManager.setVariables(e.data[1]);
   }
 };
 
@@ -115,4 +205,4 @@ setInterval((function() {
 }), 1000 / fps_target);
 
 
-},{"./lib/fps":1,"./lib/optimalResolution":2,"./lib/render":3}]},{},[4]);
+},{"./lib/fps":1,"./lib/optimalResolution":2,"./lib/optionManager":3,"./lib/render":4}]},{},[5]);

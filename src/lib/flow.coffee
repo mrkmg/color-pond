@@ -17,7 +17,7 @@ module.exports.spiral = (width, height) ->
   directions = ['right', 'down', 'left', 'up']
 
   (index) ->
-    if Math.random() > .5
+    if Math.random() > .4
       directions[Math.floor(Math.random() * 4)]
     else
       x = index % width
@@ -31,6 +31,6 @@ module.exports.spiral = (width, height) ->
       intp = Math.floor(angle)
       dec = Math.floor((angle-intp)*100)
 
-      direction =  if Math.random()*100 > dec then (intp+1).mod(4) else (intp+2).mod(4)
+      direction =  if Math.random()*90 > dec then (intp+1).mod(4) else (intp+2).mod(4)
 
       directions[direction]

@@ -16,7 +16,7 @@ class LivingEntity extends BaseEntity
         @died()
         false
       else
-        @setColor(@color[0], @color[1], @color[2], Math.min(255, 55 + Math.round((@health / @max_health)*200)))
+        @setColor(@color[0], @color[1], @color[2], Math.min(255, 20 + Math.round((@health / @max_health)*235)))
         true
     )
 

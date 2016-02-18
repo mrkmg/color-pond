@@ -15,36 +15,30 @@ class Map
   _indexToPoint: (index) -> [index % @width, Math.floor(index / @width)]
   _image: null
   _counts: {Base:0, Empty:0, RawMaterial:0, Roaming:0, ComplexMaterial:0, Producer:0}
-  _material_ratio: .05
-  _roamer_ratio: .0001
-  _producer_ratio: .001
+  _material_ratio: .2
 
   _checkMaterialRatio: ->
-    current_count = @_counts.RawMaterial + @_counts.ComplexMaterial
+    current_count = @_counts.RawMaterial + @_counts.ComplexMaterial + @_counts.Producer
     target_count = Math.floor(@_material_ratio * @_map.length)
     if current_count < target_count
-      loop
-        i = Math.floor(Math.random() * (@_map.length-1))
-        break unless @getEntityAtIndex(i)?.name is not 'Empty'
-      @assignEntityToIndex(i, new RawMaterialEntity(), true)
+      (
+        loop
+          i = Math.floor(Math.random() * (@_map.length-1))
+          break if @getEntityAtIndex(i)?.name is 'Empty'
+        @assignEntityToIndex(i, new RawMaterialEntity(), true)
+      ) for [0 .. target_count - current_count]
 
-  _checkRoamerRatio: ->
-    current_count = @_counts.Roaming
-    target_count = Math.floor(@_roamer_ratio * @_map.length)
-    if current_count < target_count
-      loop
-        i = Math.floor(Math.random() * (@_map.length-1))
-        break unless @getEntityAtIndex(i)?.name is not 'Empty'
-      @assignEntityToIndex(i, new RoamingEntity(), true)
+  _addRoamer: ->
+    loop
+      i = Math.floor(Math.random() * (@_map.length-1))
+      break if @getEntityAtIndex(i).name is 'Empty'
+    @assignEntityToIndex(i, new RoamingEntity(), true)
 
-  _checkProducerRatio: ->
-    current_count = @_counts.Producer
-    target_count = Math.floor(@_producer_ratio * @_map.length)
-    if current_count < target_count
-      loop
-        i = Math.floor(Math.random() * (@_map.length-1))
-        break unless @getEntityAtIndex(i)?.name is not 'Empty'
-      @assignEntityToIndex(i, new ProducerEntity(), true)
+  _addProducer: ->
+    loop
+      i = Math.floor(Math.random() * (@_map.length-1))
+      break if @getEntityAtIndex(i).name is 'Empty'
+    @assignEntityToIndex(i, new ProducerEntity(), true)
 
   #publics
   constructor: (@width, @height) ->
@@ -54,8 +48,10 @@ class Map
 
   tick: ->
     @_checkMaterialRatio()
-    @_checkRoamerRatio()
-    @_checkProducerRatio()
+    if Math.random() > .98
+      @_addRoamer()
+    if Math.random() > .98
+      @_addProducer()
     entity.tick() for entity in (if @_tick % 2 is 0 then @_map.slice() else @_map.slice().reverse())
     @_tick++
 
@@ -78,6 +74,7 @@ class Map
     @assignEntityToIndex index2, ent1
     ent1.is_deleted = false
     ent2.is_deleted = false
+    true
 
   getEntityAtDirection: (index, direction) ->
     switch direction
@@ -112,6 +109,7 @@ class Map
       entity.init @, index
     else
       entity.moved(index)
+    true
 
 
   #debugs

@@ -61,17 +61,15 @@ ComplexMaterialEntity = (function(superClass) {
   ComplexMaterialEntity.prototype.name = 'ComplexMaterial';
 
   function ComplexMaterialEntity(type) {
-    this.type = type != null ? type : false;
+    this.type = type != null ? type : Math.floor(Math.random() * 3);
     ComplexMaterialEntity.__super__.constructor.apply(this, arguments);
-    if (this.type === false) {
-      this.type = Math.floor(Math.random() * 3);
-    }
+    this.is_moveable = false;
     switch (this.type) {
       case 0:
-        this.color = [255, 200, 0, 255];
+        this.color = [255, 150, 0, 255];
         break;
       case 1:
-        this.color = [255, 125, 0, 255];
+        this.color = [255, 100, 0, 255];
         break;
       case 2:
         this.color = [255, 50, 0, 255];
@@ -165,7 +163,7 @@ LivingEntity = (function(superClass) {
   LivingEntity.prototype.died = function() {};
 
   LivingEntity.prototype.tick = function() {
-    return LivingEntity.__super__.tick.call(this) && (this.health--, this.health <= 0 ? (this.map.assignEntityToIndex(this.map_index, new EmptyEntity(), true), this.died(), false) : (this.setColor(this.color[0], this.color[1], this.color[2], Math.min(255, 55 + Math.round((this.health / this.max_health) * 200))), true));
+    return LivingEntity.__super__.tick.call(this) && (this.health--, this.health <= 0 ? (this.map.assignEntityToIndex(this.map_index, new EmptyEntity(), true), this.died(), false) : (this.setColor(this.color[0], this.color[1], this.color[2], Math.min(255, 20 + Math.round((this.health / this.max_health) * 235))), true));
   };
 
   return LivingEntity;
@@ -176,7 +174,7 @@ module.exports = LivingEntity;
 
 
 },{"./BaseEntity":1,"./EmptyEntity":3}],6:[function(require,module,exports){
-var ComplexMaterialEntity, EmptyEntity, LivingEntity, ProducerEntity, life_gain_per_food, life_to_reproduce, shuffle,
+var ComplexMaterialEntity, EmptyEntity, LivingEntity, ProducerEntity, fixmod, shuffle, variableHolder,
   extend = function(child, parent) { for (var key in parent) { if (hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; },
   hasProp = {}.hasOwnProperty;
 
@@ -188,9 +186,11 @@ ComplexMaterialEntity = require('./ComplexMaterialEntity');
 
 shuffle = require('../lib/shuffleArray');
 
-life_gain_per_food = 200;
+variableHolder = require('../lib/variableHolder').ProducerEntity;
 
-life_to_reproduce = 500;
+fixmod = function(m, n) {
+  return ((m % n) + n) % n;
+};
 
 ProducerEntity = (function(superClass) {
   extend(ProducerEntity, superClass);
@@ -198,54 +198,60 @@ ProducerEntity = (function(superClass) {
   ProducerEntity.prototype.name = 'Producer';
 
   function ProducerEntity(wants, makes) {
-    this.wants = wants != null ? wants : false;
-    this.makes = makes != null ? makes : false;
+    this.wants = wants != null ? wants : Math.floor(Math.random() * 3);
+    this.makes = makes != null ? makes : fixmod(this.wants + (Math.random() > .5 ? 1 : -1), 3);
     ProducerEntity.__super__.constructor.apply(this, arguments);
     this.is_moveable = false;
     this.color = [0, 255, 0, 255];
-    this.health = 400;
-    this.max_health = 800;
-    if (this.wants === false) {
-      this.wants = Math.floor(Math.random() * 3);
-    }
-    if (this.makes === false) {
-      this.makes = Math.floor(Math.random() * 3);
-    }
+    this.health = variableHolder.starting_life;
+    this.max_health = variableHolder.max_life;
+    this.last_ate = 0;
+    this.age = 0;
   }
 
-  ProducerEntity.prototype.transferHealth = function(target_entity) {
-    var to_transfer;
-    if (this.health > target_entity.health) {
-      to_transfer = Math.floor((this.health - target_entity.health) / 2);
-      this.health -= to_transfer;
-      return target_entity.health += to_transfer;
-    }
-  };
-
-  ProducerEntity.prototype.processSides = function() {
-    var countFriendly, entity, i, len, ref, side;
-    countFriendly = 0;
+  ProducerEntity.prototype.getSides = function() {
+    var i, len, ref, results, side;
     ref = shuffle(['up', 'down', 'left', 'right']);
+    results = [];
     for (i = 0, len = ref.length; i < len; i++) {
       side = ref[i];
-      entity = this.map.getEntityAtDirection(this.map_index, side);
-      if (entity) {
-        if (entity.name === 'Producer' && entity.wants === this.wants) {
-          countFriendly++;
-          this.transferHealth(entity);
-        }
-        if (entity.name === 'RawMaterial' && entity.type === this.wants && this.health + life_gain_per_food < this.max_health) {
-          this.health += life_gain_per_food;
-          this.map.assignEntityToIndex(entity.map_index, new EmptyEntity(), true);
-        }
-        if (entity.name === 'Empty' && this.health > life_to_reproduce && Math.random() > .8) {
-          this.map.assignEntityToIndex(entity.map_index, new ProducerEntity(this.wants, this.makes), true);
-        }
+      results.push(this.map.getEntityAtDirection(this.map_index, side));
+    }
+    return results;
+  };
+
+  ProducerEntity.prototype.eat = function(entities) {
+    var entity, i, len, results;
+    results = [];
+    for (i = 0, len = entities.length; i < len; i++) {
+      entity = entities[i];
+      if (this.health < this.max_health) {
+        results.push((this.last_ate = 0, this.age -= 20, this.health += variableHolder.life_gain_per_food, this.map.assignEntityToIndex(entity.map_index, new EmptyEntity(), true)));
       }
     }
-    return {
-      friendly: countFriendly
-    };
+    return results;
+  };
+
+  ProducerEntity.prototype.transferHealth = function(entities) {
+    var entity, i, len, results, to_transfer;
+    results = [];
+    for (i = 0, len = entities.length; i < len; i++) {
+      entity = entities[i];
+      results.push((to_transfer = Math.floor((this.health - entity.health) / variableHolder.transfer_divisor), to_transfer > 0 ? (this.health -= to_transfer, entity.health += to_transfer) : void 0));
+    }
+    return results;
+  };
+
+  ProducerEntity.prototype.reproduce = function(entities) {
+    var entity, i, len, results;
+    results = [];
+    for (i = 0, len = entities.length; i < len; i++) {
+      entity = entities[i];
+      if (this.health >= variableHolder.life_to_reproduce) {
+        results.push((this.health -= variableHolder.life_loss_to_reproduce, this.map.assignEntityToIndex(entity.map_index, new ProducerEntity(this.wants, this.makes), true)));
+      }
+    }
+    return results;
   };
 
   ProducerEntity.prototype.died = function() {
@@ -253,8 +259,74 @@ ProducerEntity = (function(superClass) {
   };
 
   ProducerEntity.prototype.tick = function() {
-    var counts;
-    return ProducerEntity.__super__.tick.call(this) && (counts = this.processSides(), counts.friendly === 4 ? this.health++ : void 0);
+    var consumable_entities, entity, friendly_entities, placeable_entities, sides;
+    if (ProducerEntity.__super__.tick.call(this)) {
+      this.last_ate++;
+      this.age++;
+      sides = (function() {
+        var i, len, ref, results;
+        ref = this.getSides();
+        results = [];
+        for (i = 0, len = ref.length; i < len; i++) {
+          entity = ref[i];
+          if (entity) {
+            results.push(entity);
+          }
+        }
+        return results;
+      }).call(this);
+      placeable_entities = (function() {
+        var i, len, results;
+        results = [];
+        for (i = 0, len = sides.length; i < len; i++) {
+          entity = sides[i];
+          if (entity.name === "Empty") {
+            results.push(entity);
+          }
+        }
+        return results;
+      })();
+      friendly_entities = (function() {
+        var i, len, results;
+        results = [];
+        for (i = 0, len = sides.length; i < len; i++) {
+          entity = sides[i];
+          if (entity.name === "Producer" && entity.wants === this.wants && entity.makes === this.makes) {
+            results.push(entity);
+          }
+        }
+        return results;
+      }).call(this);
+      consumable_entities = (function() {
+        var i, len, results;
+        results = [];
+        for (i = 0, len = sides.length; i < len; i++) {
+          entity = sides[i];
+          if (entity.name === "RawMaterial" && entity.type === this.wants) {
+            results.push(entity);
+          }
+        }
+        return results;
+      }).call(this);
+      this.transferHealth(friendly_entities);
+      if (this.last_ate > variableHolder.eating_cooldown) {
+        this.reproduce(placeable_entities);
+      }
+      this.eat(consumable_entities);
+      if (friendly_entities.length < 4 && this.age > Math.random() * variableHolder.age_death_rate) {
+        this.died();
+        return true;
+      } else {
+        if (friendly_entities.length === 4) {
+          this.color[1] = 255;
+        } else {
+          this.color[1] = 128;
+        }
+        return true;
+      }
+    } else {
+      return false;
+    }
   };
 
   return ProducerEntity;
@@ -264,7 +336,7 @@ ProducerEntity = (function(superClass) {
 module.exports = ProducerEntity;
 
 
-},{"../lib/shuffleArray":12,"./ComplexMaterialEntity":2,"./EmptyEntity":3,"./LivingEntity":5}],7:[function(require,module,exports){
+},{"../lib/shuffleArray":12,"../lib/variableHolder":13,"./ComplexMaterialEntity":2,"./EmptyEntity":3,"./LivingEntity":5}],7:[function(require,module,exports){
 var FlowingEntity, RawMaterialEntity,
   extend = function(child, parent) { for (var key in parent) { if (hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; },
   hasProp = {}.hasOwnProperty;
@@ -276,15 +348,15 @@ RawMaterialEntity = (function(superClass) {
 
   RawMaterialEntity.prototype.name = 'RawMaterial';
 
-  function RawMaterialEntity() {
+  function RawMaterialEntity(type) {
+    this.type = type != null ? type : Math.floor(Math.random() * 3);
     RawMaterialEntity.__super__.constructor.apply(this, arguments);
-    this.type = Math.floor(Math.random() * 3);
     switch (this.type) {
       case 0:
-        this.color = [0, 200, 255, 255];
+        this.color = [0, 150, 255, 255];
         break;
       case 1:
-        this.color = [0, 125, 255, 255];
+        this.color = [0, 100, 255, 255];
         break;
       case 2:
         this.color = [0, 50, 255, 255];
@@ -299,7 +371,7 @@ module.exports = RawMaterialEntity;
 
 
 },{"./FlowingEntity":4}],8:[function(require,module,exports){
-var EmptyEntity, LivingEntity, RoamingEntity, search_radius, shuffle,
+var EmptyEntity, LivingEntity, RawMaterialEntity, RoamingEntity, search_radius, shuffle,
   extend = function(child, parent) { for (var key in parent) { if (hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; },
   hasProp = {}.hasOwnProperty;
 
@@ -309,6 +381,8 @@ EmptyEntity = require('./EmptyEntity');
 
 shuffle = require('../lib/shuffleArray');
 
+RawMaterialEntity = require('./RawMaterialEntity');
+
 search_radius = 10;
 
 RoamingEntity = (function(superClass) {
@@ -317,14 +391,11 @@ RoamingEntity = (function(superClass) {
   RoamingEntity.prototype.name = 'Roaming';
 
   function RoamingEntity(wants) {
-    this.wants = wants != null ? wants : false;
+    this.wants = wants != null ? wants : Math.floor(Math.random() * 3);
     RoamingEntity.__super__.constructor.call(this);
-    this.max_health = 400;
+    this.max_health = 200;
     this.is_moveable = false;
-    if (this.wants === false) {
-      this.wants = Math.floor(Math.random() * 3);
-    }
-    this.health = 300;
+    this.health = 100;
     this.color = [255, 255, 255, 255];
   }
 
@@ -334,7 +405,7 @@ RoamingEntity = (function(superClass) {
     results = [];
     for (i = 0, len = ref.length; i < len; i++) {
       side = ref[i];
-      results.push((entity = this.map.getEntityAtDirection(this.map_index, side), entity ? entity.name === 'ComplexMaterial' && entity.type === this.wants ? (this.map.assignEntityToIndex(entity.map_index, new EmptyEntity(), true), this.health += 50) : void 0 : void 0));
+      results.push((entity = this.map.getEntityAtDirection(this.map_index, side), entity ? entity.name === 'ComplexMaterial' && entity.type === this.wants ? (this.map.assignEntityToIndex(entity.map_index, new RawMaterialEntity(this.wants), true), this.health += 50) : void 0 : void 0));
     }
     return results;
   };
@@ -373,15 +444,17 @@ RoamingEntity = (function(superClass) {
   };
 
   RoamingEntity.prototype.reproduce = function() {
-    var entity, i, len, ref, side;
-    if (this.health > 400) {
+    var child, entity, i, len, ref, side;
+    if (this.health > 200) {
       ref = shuffle(['up', 'down', 'left', 'right']);
       for (i = 0, len = ref.length; i < len; i++) {
         side = ref[i];
         entity = this.map.getEntityAtDirection(this.map_index, side);
         if (entity && entity.name === 'Empty') {
-          this.map.assignEntityToIndex(entity.map_index, new RoamingEntity(this.wants), true);
-          this.health -= 200;
+          child = new RoamingEntity(this.wants);
+          child.health = 20;
+          this.map.assignEntityToIndex(entity.map_index, child, true);
+          this.health -= 50;
           break;
         }
       }
@@ -400,7 +473,7 @@ RoamingEntity = (function(superClass) {
 module.exports = RoamingEntity;
 
 
-},{"../lib/shuffleArray":12,"./EmptyEntity":3,"./LivingEntity":5}],9:[function(require,module,exports){
+},{"../lib/shuffleArray":12,"./EmptyEntity":3,"./LivingEntity":5,"./RawMaterialEntity":7}],9:[function(require,module,exports){
 Number.prototype.mod = function(n) {
   return ((this % n) + n) % n;
 };
@@ -421,7 +494,7 @@ module.exports.spiral = function(width, height) {
   directions = ['right', 'down', 'left', 'up'];
   return function(index) {
     var angle, dec, direction, distance, dx, dy, intp, x, y;
-    if (Math.random() > .5) {
+    if (Math.random() > .4) {
       return directions[Math.floor(Math.random() * 4)];
     } else {
       x = index % width;
@@ -432,7 +505,7 @@ module.exports.spiral = function(width, height) {
       angle = Math.floor(((((Math.atan2(dy, dx) * 180) / Math.PI) + distance).mod(360) / division_angle) * 100) / 100;
       intp = Math.floor(angle);
       dec = Math.floor((angle - intp) * 100);
-      direction = Math.random() * 100 > dec ? (intp + 1).mod(4) : (intp + 2).mod(4);
+      direction = Math.random() * 90 > dec ? (intp + 1).mod(4) : (intp + 2).mod(4);
       return directions[direction];
     }
   };
@@ -499,55 +572,50 @@ Map = (function() {
     Producer: 0
   };
 
-  Map.prototype._material_ratio = .05;
-
-  Map.prototype._roamer_ratio = .0001;
-
-  Map.prototype._producer_ratio = .001;
+  Map.prototype._material_ratio = .2;
 
   Map.prototype._checkMaterialRatio = function() {
-    var current_count, i, ref, target_count;
-    current_count = this._counts.RawMaterial + this._counts.ComplexMaterial;
+    var current_count, i, j, ref, results, target_count;
+    current_count = this._counts.RawMaterial + this._counts.ComplexMaterial + this._counts.Producer;
     target_count = Math.floor(this._material_ratio * this._map.length);
     if (current_count < target_count) {
-      while (true) {
-        i = Math.floor(Math.random() * (this._map.length - 1));
-        if (((ref = this.getEntityAtIndex(i)) != null ? ref.name : void 0) !== !'Empty') {
-          break;
-        }
+      results = [];
+      for (j = 0, ref = target_count - current_count; 0 <= ref ? j <= ref : j >= ref; 0 <= ref ? j++ : j--) {
+        results.push((function() {
+          var ref1;
+          while (true) {
+            i = Math.floor(Math.random() * (this._map.length - 1));
+            if (((ref1 = this.getEntityAtIndex(i)) != null ? ref1.name : void 0) === 'Empty') {
+              break;
+            }
+          }
+          return this.assignEntityToIndex(i, new RawMaterialEntity(), true);
+        }).call(this));
       }
-      return this.assignEntityToIndex(i, new RawMaterialEntity(), true);
+      return results;
     }
   };
 
-  Map.prototype._checkRoamerRatio = function() {
-    var current_count, i, ref, target_count;
-    current_count = this._counts.Roaming;
-    target_count = Math.floor(this._roamer_ratio * this._map.length);
-    if (current_count < target_count) {
-      while (true) {
-        i = Math.floor(Math.random() * (this._map.length - 1));
-        if (((ref = this.getEntityAtIndex(i)) != null ? ref.name : void 0) !== !'Empty') {
-          break;
-        }
+  Map.prototype._addRoamer = function() {
+    var i;
+    while (true) {
+      i = Math.floor(Math.random() * (this._map.length - 1));
+      if (this.getEntityAtIndex(i).name === 'Empty') {
+        break;
       }
-      return this.assignEntityToIndex(i, new RoamingEntity(), true);
     }
+    return this.assignEntityToIndex(i, new RoamingEntity(), true);
   };
 
-  Map.prototype._checkProducerRatio = function() {
-    var current_count, i, ref, target_count;
-    current_count = this._counts.Producer;
-    target_count = Math.floor(this._producer_ratio * this._map.length);
-    if (current_count < target_count) {
-      while (true) {
-        i = Math.floor(Math.random() * (this._map.length - 1));
-        if (((ref = this.getEntityAtIndex(i)) != null ? ref.name : void 0) !== !'Empty') {
-          break;
-        }
+  Map.prototype._addProducer = function() {
+    var i;
+    while (true) {
+      i = Math.floor(Math.random() * (this._map.length - 1));
+      if (this.getEntityAtIndex(i).name === 'Empty') {
+        break;
       }
-      return this.assignEntityToIndex(i, new ProducerEntity(), true);
     }
+    return this.assignEntityToIndex(i, new ProducerEntity(), true);
   };
 
   function Map(width, height) {
@@ -564,8 +632,12 @@ Map = (function() {
   Map.prototype.tick = function() {
     var entity, j, len, ref;
     this._checkMaterialRatio();
-    this._checkRoamerRatio();
-    this._checkProducerRatio();
+    if (Math.random() > .98) {
+      this._addRoamer();
+    }
+    if (Math.random() > .98) {
+      this._addProducer();
+    }
     ref = (this._tick % 2 === 0 ? this._map.slice() : this._map.slice().reverse());
     for (j = 0, len = ref.length; j < len; j++) {
       entity = ref[j];
@@ -601,7 +673,8 @@ Map = (function() {
     this.assignEntityToIndex(index1, ent2);
     this.assignEntityToIndex(index2, ent1);
     ent1.is_deleted = false;
-    return ent2.is_deleted = false;
+    ent2.is_deleted = false;
+    return true;
   };
 
   Map.prototype.getEntityAtDirection = function(index, direction) {
@@ -650,10 +723,11 @@ Map = (function() {
     this._map[index] = entity;
     entity.is_deleted = false;
     if (is_new) {
-      return entity.init(this, index);
+      entity.init(this, index);
     } else {
-      return entity.moved(index);
+      entity.moved(index);
     }
+    return true;
   };
 
   Map.prototype.$$dumpMap = function() {
@@ -683,11 +757,34 @@ module.exports = function(array) {
 
 
 },{}],13:[function(require,module,exports){
-var Map, fps, init, map, map_tick_int, running, sendImageData, sendTPS, start, stop, tick;
+var variables;
+
+variables = {
+  ProducerEntity: {
+    starting_life: 250,
+    life_gain_per_food: 300,
+    life_to_reproduce: 400,
+    life_loss_to_reproduce: 50,
+    max_life: 500,
+    transfer_divisor: 4,
+    eating_cooldown: 5,
+    age_death_rate: 1000000
+  }
+};
+
+module.exports = variables;
+
+
+},{}],14:[function(require,module,exports){
+var Map, fps, getVariables, init, map, map_tick_int, running, sendImageData, sendTPS, start, stop, target_tps, tick, updateVariable, variables;
 
 Map = require('./lib/map');
 
 fps = require('./lib/fps')();
+
+variables = require('./lib/variableHolder');
+
+target_tps = 20;
 
 map = null;
 
@@ -697,7 +794,8 @@ map_tick_int = -1;
 
 tick = function() {
   map.tick();
-  return fps.tick();
+  fps.tick();
+  return null;
 };
 
 init = function(width, height) {
@@ -709,7 +807,7 @@ start = function() {
   running = true;
   self.postMessage(['started']);
   clearInterval(map_tick_int);
-  return map_tick_int = setInterval(tick, 25);
+  return map_tick_int = setInterval(tick, 1000 / target_tps);
 };
 
 stop = function() {
@@ -726,6 +824,15 @@ sendTPS = function() {
   return self.postMessage(['tpm', fps.getFps()]);
 };
 
+updateVariable = function(type, variable, value) {
+  console.debug("Updating " + type + "." + variable + " to " + value);
+  return variables[type][variable] = value;
+};
+
+getVariables = function() {
+  return self.postMessage(['variables', variables]);
+};
+
 self.onmessage = function(e) {
   switch (e.data[0]) {
     case 'init':
@@ -738,10 +845,14 @@ self.onmessage = function(e) {
       return sendImageData();
     case 'sendTPS':
       return sendTPS();
+    case 'updateVariable':
+      return updateVariable(e.data[1], e.data[2], e.data[3]);
+    case 'getVariables':
+      return getVariables();
     default:
       return console.error("Unknown Command " + e.data[0]);
   }
 };
 
 
-},{"./lib/fps":10,"./lib/map":11}]},{},[13]);
+},{"./lib/fps":10,"./lib/map":11,"./lib/variableHolder":13}]},{},[14]);
