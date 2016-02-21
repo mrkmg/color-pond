@@ -11,11 +11,13 @@ class BaseEntity
     @map_index = index
     [@map_x, @map_y] = @map._indexToPoint(index)
     @setColor @color[0], @color[1], @color[2], @color[3]
+    true
 
   moved: (new_index) ->
     @map_index = new_index
     [@map_x, @map_y] = @map._indexToPoint(new_index)
     @setColor @color[0], @color[1], @color[2], @color[3]
+    true
 
   setColor: (r, g, b, a) ->
     unless @is_deleted
@@ -25,6 +27,9 @@ class BaseEntity
       @map._image[image_index + 1] = g
       @map._image[image_index + 2] = b
       @map._image[image_index + 3] = a
+      true
+    else
+      false
 
   tick: ->
     not @is_deleted

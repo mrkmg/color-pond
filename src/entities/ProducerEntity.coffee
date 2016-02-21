@@ -9,8 +9,9 @@ fixmod = (m, n) -> ((m%n)+n)%n
 class ProducerEntity extends LivingEntity
   name: 'Producer'
 
-  constructor: (@wants = Math.floor(Math.random()*3), @makes = fixmod((@wants+(if Math.random() > .5 then 1 else -1)), 3))->
+  constructor: (@wants = Math.floor(Math.random()*3))->
     super
+    @makes = fixmod(@wants + 1, 3)
     @is_moveable = false
     @color = [0, 255, 0, 255]
     @health = variableHolder.starting_life
@@ -24,23 +25,33 @@ class ProducerEntity extends LivingEntity
   eat: (entities) ->
     (
       @last_ate = 0
-      @age -= 20
+      @age = 0
       @health += variableHolder.life_gain_per_food
       @map.assignEntityToIndex(entity.map_index, new EmptyEntity(), true)
     ) for entity in entities when @health < @max_health
 
   transferHealth: (entities) ->
-    (
-      to_transfer = Math.floor((@health - entity.health) / variableHolder.transfer_divisor)
-      if to_transfer > 0
-        @health -= to_transfer
-        entity.health += to_transfer
-    ) for entity in entities
+    for entity in entities
+      needs = (
+        if (@health < variableHolder.min_life_to_transfer and entity.health > variableHolder.min_life_to_transfer)
+          Math.floor(@health * .9)
+        else if ((@health < variableHolder.min_life_to_transfer and entity.health < variableHolder.min_life_to_transfer) or (@health > variableHolder.min_life_to_transfer and entity.health > variableHolder.min_life_to_transfer)) and @health > entity.health
+          Math.min(Math.ceil((@health - entity.health) / 2), variableHolder.max_life_transfer)
+        else
+          0
+      )
+
+      if needs > 0
+        @health -= needs
+        entity.health += needs
+
+    true
 
   reproduce: (entities) ->
     (
       @health -= variableHolder.life_loss_to_reproduce
-      @map.assignEntityToIndex(entity.map_index, new ProducerEntity(@wants, @makes), true)
+      @map.assignEntityToIndex(entity.map_index, new ProducerEntity(@wants), true)
+      @age = 0
     ) for entity in entities when @health >= variableHolder.life_to_reproduce
 
   died: ->
@@ -58,20 +69,26 @@ class ProducerEntity extends LivingEntity
       consumable_entities = (entity for entity in sides when entity.name is "RawMaterial" and entity.type is @wants)
 
       @transferHealth(friendly_entities)
-      if @last_ate > variableHolder.eating_cooldown
-        @reproduce(placeable_entities)
-      @eat(consumable_entities)
 
-      if friendly_entities.length < 4 and @age > Math.random() * variableHolder.age_death_rate
-        @died()
-        true
+      if @age > variableHolder.age_to_reproduce and Math.pow(friendly_entities.length+1, 2)/16 > Math.random()
+        @reproduce(placeable_entities)
+
+      if @last_ate > variableHolder.eating_cooldown
+        @eat(consumable_entities)
+
+      if friendly_entities.length is 4
+        @age = 0
+        @color[1] = 255
+        @health -= 1
       else
-        if friendly_entities.length is 4
-#          @health++
-          @color[1] = 255
-        else
-          @color[1] = 128
-        true
+        @health -= 2
+        @color[1] = 200
+
+      if @age / variableHolder.old_age_death_multiplier > Math.random()
+        @died()
+
+
+      true
     else
       false
 

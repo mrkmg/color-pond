@@ -6,10 +6,19 @@
         <link rel="stylesheet" href="index.css" />
     </head>
     <body>
-    <div id="holder">
-        <canvas id="main"></canvas>
+    <div id="left_panel">
+        <canvas id="main" class="pixeled"></canvas>
     </div>
-    <div id="toggler">
+    <div id="right_panel">
+        <div id="buttons">
+            <table>
+                <tr>
+                    <td><button id="start">Start</button></td>
+                    <td><button id="stop">Stop</button></td>
+                    <td><button id="toggle_pixel">Pixel<br />Perfect</button></td>
+                </tr>
+            </table>
+        </div>
         <div id="options"></div>
         <div id="stats"></div>
     </div>

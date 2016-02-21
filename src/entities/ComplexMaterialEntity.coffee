@@ -8,11 +8,11 @@ class ComplexMaterialEntity extends FlowingEntity
     @is_moveable = false
     switch @type
       when 0
-        @color = [255, 150, 0, 255]
+        @color = [255, 0, 0, 255]
       when 1
-        @color = [255, 100, 0, 255]
+        @color = [255, 50, 50, 255]
       when 2
-        @color = [255, 50, 0, 255]
+        @color = [255, 100, 100, 255]
 
 
 module.exports = ComplexMaterialEntity

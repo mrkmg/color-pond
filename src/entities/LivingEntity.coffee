@@ -10,7 +10,6 @@ class LivingEntity extends BaseEntity
 
   tick: ->
     super() and (
-      @health--
       if @health <= 0
         @map.assignEntityToIndex(@map_index, new EmptyEntity(), true)
         @died()

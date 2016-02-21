@@ -1,5 +1,5 @@
 module.exports = ->
-  ideal = 40000
+  ideal = 20000
   screenX = window.innerWidth
   screenY = window.innerHeight
 

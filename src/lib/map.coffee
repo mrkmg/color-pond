@@ -4,6 +4,8 @@ RawMaterialEntity = require '../entities/RawMaterialEntity'
 ComplexMaterialEntity = require '../entities/ComplexMaterialEntity'
 ProducerEntity = require '../entities/ProducerEntity'
 flow = require './flow'
+shuffle = require './shuffleArray'
+variables = require('./variableHolder').Map
 
 class Map
   # Privates
@@ -11,48 +13,27 @@ class Map
 
   _tick: 0
 
-  _pointToIndex: (x, y) -> x + @width * y
-  _indexToPoint: (index) -> [index % @width, Math.floor(index / @width)]
   _image: null
   _counts: {Base:0, Empty:0, RawMaterial:0, Roaming:0, ComplexMaterial:0, Producer:0}
-  _material_ratio: .2
-
-  _checkMaterialRatio: ->
-    current_count = @_counts.RawMaterial + @_counts.ComplexMaterial + @_counts.Producer
-    target_count = Math.floor(@_material_ratio * @_map.length)
-    if current_count < target_count
-      (
-        loop
-          i = Math.floor(Math.random() * (@_map.length-1))
-          break if @getEntityAtIndex(i)?.name is 'Empty'
-        @assignEntityToIndex(i, new RawMaterialEntity(), true)
-      ) for [0 .. target_count - current_count]
-
-  _addRoamer: ->
-    loop
-      i = Math.floor(Math.random() * (@_map.length-1))
-      break if @getEntityAtIndex(i).name is 'Empty'
-    @assignEntityToIndex(i, new RoamingEntity(), true)
-
-  _addProducer: ->
-    loop
-      i = Math.floor(Math.random() * (@_map.length-1))
-      break if @getEntityAtIndex(i).name is 'Empty'
-    @assignEntityToIndex(i, new ProducerEntity(), true)
 
   #publics
   constructor: (@width, @height) ->
-    @flow = flow.spiral(@width, @height)
+    @flow = flow.opposite_spirals(@width, @height, @)
     @_image = new Uint8Array(@width * @height * 4)
     @assignEntityToIndex(i, new EmptyEntity(), true) for i in [0 .. @width*@height - 1]
 
+    @_addProducer() for [0 .. 8]
+
   tick: ->
-    @_checkMaterialRatio()
-    if Math.random() > .98
+    console.log @_counts.RawMaterial
+    needed_material = @_getNeededMaterialCount()
+    if needed_material > 0
+      @_addMaterial() for [0 .. needed_material]
+    if Math.random()*10000 < variables.chance_roamer_spawn
       @_addRoamer()
-    if Math.random() > .98
+    if Math.random()*10000 < variables.chance_producer_spawn
       @_addProducer()
-    entity.tick() for entity in (if @_tick % 2 is 0 then @_map.slice() else @_map.slice().reverse())
+    entity.tick() for entity in shuffle(@_map.slice())
     @_tick++
 
   getRender: ->
@@ -111,6 +92,29 @@ class Map
       entity.moved(index)
     true
 
+  #privates
+  _pointToIndex: (x, y) -> x + @width * y
+  _indexToPoint: (index) -> [index % @width, Math.floor(index / @width)]
+  _addEntityToEmpty: (type) ->
+    loop
+      i = Math.floor(Math.random() * (@_map.length-1))
+      break if @getEntityAtIndex(i)?.name is 'Empty'
+    @assignEntityToIndex(i, new type(), true)
+
+  _getNeededMaterialCount: ->
+    Math.floor(@_map.length * variables.empty_ratio) - @_counts.ComplexMaterial - @_counts.RawMaterial - @_counts.Producer
+
+  _addMaterial: ->
+    @_addEntityToEmpty(RawMaterialEntity)
+
+  _addComplexMaterial: ->
+    @_addEntityToEmpty(ComplexMaterialEntity)
+
+  _addRoamer: ->
+    @_addEntityToEmpty(RoamingEntity)
+
+  _addProducer: ->
+    @_addEntityToEmpty(ProducerEntity)
 
   #debugs
   $$dumpMap: ->

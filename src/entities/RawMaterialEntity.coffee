@@ -7,10 +7,10 @@ class RawMaterialEntity extends FlowingEntity
     super
     switch @type
       when 0
-        @color = [0, 150, 255, 255]
+        @color = [0, 0, 255, 255]
       when 1
-        @color = [0, 100, 255, 255]
+        @color = [50, 50, 255, 255]
       when 2
-        @color = [0, 50, 255, 255]
+        @color = [100, 100, 255, 255]
 
 module.exports = RawMaterialEntity

@@ -49,7 +49,7 @@ class OptionManager
     null
 
   writeValue: (type, option, value) ->
-    @listener(type, option, parseInt(value))
+    @listener(type, option, parseFloat(value))
 
   setVariables: (variables) ->
     @variables = variables

@@ -1,13 +1,15 @@
 Map = require './lib/map'
-fps = require('./lib/fps')()
+FPS = require('./lib/fps')
 
 variables = require './lib/variableHolder'
 
-target_tps = 20
+target_tps = 80
 
 map = null
 running = false
 map_tick_int = -1;
+fps = FPS()
+
 
 tick = ->
   map.tick()
@@ -20,6 +22,7 @@ init = (width, height) ->
 
 start = ->
   running = true
+  fps = FPS()
   self.postMessage ['started']
   clearInterval map_tick_int
   map_tick_int = setInterval tick, 1000/target_tps
