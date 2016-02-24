@@ -11,17 +11,22 @@ html {
 #left_panel {
   position: fixed;
   left: 0;
-  right: 200px;
+  right: 0;
   top: 0;
   bottom: 0;
 }
 #right_panel {
+  transition: right 500ms ease-in-out;
+  background: #444;
   position: fixed;
   top: 0;
-  right: 0;
+  right: -200px;
   bottom: 0;
   width: 200px;
   color: white;
+}
+#right_panel.show {
+  right: 0;
 }
 #main {
   width: 100%;
@@ -53,10 +58,29 @@ html {
   border: solid thin black;
   outline: none;
 }
-#options {
+#flow_holder {
   position: absolute;
   top: 40px;
+  left: 20px;
+  right: 0;
+  height: 20px;
+}
+#seed_holder {
+  position: absolute;
+  top: 70px;
+  left: 20px;
+  right: 20px;
+  height: 20px;
+}
+#seed_holder input {
+  width: 100px;
+}
+#options {
+  position: absolute;
+  top: 100px;
   bottom: 40px;
+  right: 0;
+  left: 0;
   overflow: auto;
   padding: 0 10px;
 }

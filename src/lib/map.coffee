@@ -24,8 +24,10 @@ class Map
 
     @_addProducer() for [0 .. 8]
 
+  setFlowType: (type) ->
+    @flow = flow[type](@width, @height)
+
   tick: ->
-    console.log @_counts.RawMaterial
     needed_material = @_getNeededMaterialCount()
     if needed_material > 0
       @_addMaterial() for [0 .. needed_material]

@@ -17,6 +17,7 @@
     "browserify": "^13.0.0",
     "coffeeify": "^2.0.1",
     "fsmonitor": "^0.2.4",
-    "less": "^2.6.0"
+    "less": "^2.6.0",
+    "seedrandom": "^2.4.2"
   }
 }

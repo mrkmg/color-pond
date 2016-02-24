@@ -1,33 +1,5 @@
 Number.prototype.mod = (n) -> ((this%n)+n)%n
 
-module.exports.mix = (width, height, map) ->
-  center_x = Math.floor width/2
-  center_y = Math.floor height/2
-  maxDistance = Math.sqrt(Math.pow(width-center_x, 2) + Math.pow(height-center_y, 2))
-
-  mx = 1
-  my = 1
-
-  if width > height
-    mx = height/width
-  else
-    my = width/height
-
-  dual_spirals = module.exports.dual_spirals(width, height)
-  spiral = module.exports.spiral(width, height)
-
-  (index) ->
-    x = index % width
-    y = Math.floor index / width
-
-    dx = ((x - center_x) * mx)
-    dy = ((y - center_y + 1) * my)
-
-    distance = Math.sin((Math.sqrt(Math.pow(dx, 2) + Math.pow(dy, 2)) / maxDistance) * 10)
-
-    if (distance / maxDistance > .5) then dual_spirals(index)
-    else spiral(index)
-
 
 module.exports.dual_spirals = (width, height, map) ->
   center_x = Math.floor width/2
@@ -94,23 +66,23 @@ module.exports.opposite_spirals = (width, height, map) ->
 
     q = (
       if dy > 0
-        if mx < center_x / 2 then 0 else 1
+        if mx < center_x / 2.5 then 0 else 1
       else
-        if mx > center_x / 2 then 2 else 3
+        if mx > center_x / 2.5 then 2 else 3
     )
 
-    rand = Math.random() >= .5
+    rand = Math.random() >= .49
 
     if dx > 0
       switch q
         when 0
-          if rand then 'up' else 'left'
+          if rand then 'left' else 'up'
         when 1
-          if rand then 'left' else 'down'
+          if rand then 'down' else 'left'
         when 2
-          if rand then 'down' else 'right'
+          if rand then 'right' else 'down'
         when 3
-          if rand then 'right' else 'up'
+          if rand then 'up' else 'right'
     else
       switch q
         when 0

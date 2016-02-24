@@ -2,6 +2,7 @@ LivingEntity = require './LivingEntity'
 EmptyEntity = require './EmptyEntity'
 shuffle = require '../lib/shuffleArray'
 RawMaterialEntity = require './RawMaterialEntity'
+variables = require('../lib/variableHolder.coffee').RoamingEntity
 
 search_radius = 10
 
@@ -12,9 +13,9 @@ class RoamingEntity extends LivingEntity
 
   constructor: () ->
     super()
-    @max_health = 200
+    @max_health = variables.max_life
     @is_moveable = false
-    @health = 100
+    @health = variables.starting_health_fresh
     @color = [255, 255, 0, 255]
     @stuck_count = 0
     @stuck_cooldown = 0
@@ -25,9 +26,9 @@ class RoamingEntity extends LivingEntity
   doMovement: ->
     self = @
 
-    if @stuck_count > 20
+    if @stuck_count > variables.stuck_ticks
       @chooseDirection()
-      @stuck_cooldown = 20
+      @stuck_cooldown = variables.stuck_cooldown
 
     if @stuck_cooldown > 0
       @stuck_cooldown--
@@ -91,19 +92,19 @@ class RoamingEntity extends LivingEntity
       if entity
         if entity.name is 'ComplexMaterial'
           @map.assignEntityToIndex(entity.map_index, new RawMaterialEntity(entity.type), true)
-          @health += 50
+          @health += variables.life_gain_per_food
     ) for side in shuffle ['up', 'down', 'left', 'right']
 
   reproduce: ->
-    if @health > 200
+    if @health > variables.life_to_reproduce
       (
         entity = @map.getEntityAtDirection(@map_index, side)
 
         if entity and entity.name is 'Empty'
             child = new RoamingEntity()
-            child.health = 20
+            child.health = variables.starting_health_clone
             @map.assignEntityToIndex(entity.map_index, child , true)
-            @health -= 50
+            @health -= variables.life_loss_to_reproduce
             break
       ) for side in shuffle ['up', 'down', 'left', 'right']
 

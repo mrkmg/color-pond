@@ -1,12 +1,14 @@
 Map = require './lib/map'
 FPS = require('./lib/fps')
 
+
 variables = require './lib/variableHolder'
 
-target_tps = 80
+target_tps = 40
 
 map = null
 running = false
+did_set_seed = false;
 map_tick_int = -1;
 fps = FPS()
 
@@ -16,11 +18,12 @@ tick = ->
   fps.tick()
   null
 
-init = (width, height) ->
+init = (width, height, seed) ->
+  Math.random = require('seedrandom').alea(seed)
   map = new Map width, height
   self.postMessage ['initialized']
 
-start = ->
+start = (seed) ->
   running = true
   fps = FPS()
   self.postMessage ['started']
@@ -45,15 +48,19 @@ updateVariable = (type, variable, value) ->
 getVariables = ->
   self.postMessage ['variables', variables]
 
+setFlowType = (type) ->
+  map.setFlowType(type)
+
 
 self.onmessage = (e) ->
   switch e.data[0]
-    when 'init'           then init(e.data[1], e.data[2])
+    when 'init'           then init(e.data[1], e.data[2], e.data[3])
     when 'start'          then start()
     when 'stop'           then stop()
     when 'sendImageData'  then sendImageData()
     when 'sendTPS'        then sendTPS()
     when 'updateVariable' then updateVariable(e.data[1], e.data[2], e.data[3])
     when 'getVariables'   then getVariables()
+    when 'setFlowType'    then setFlowType(e.data[1])
     else console.error "Unknown Command #{e.data[0]}"
 
