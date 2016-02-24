@@ -61,10 +61,9 @@ document.getElementById('start').addEventListener 'click', ->
   if did_init
     worker.postMessage ['start']
   else
-    worker.postMessage ['init', x, y, seed.value]
+    worker.postMessage ['init', x, y, seed.value, flow.value]
     right_panel.classList.remove('show')
-    options.style.top = '60px'
-    seed_holder.style.display = 'none'
+    seed.setAttribute('readonly', 'readonly')
 
 document.getElementById('stop').addEventListener('click', -> worker.postMessage ['stop']);
 

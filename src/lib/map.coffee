@@ -3,9 +3,11 @@ RoamingEntity = require '../entities/RoamingEntity'
 RawMaterialEntity = require '../entities/RawMaterialEntity'
 ComplexMaterialEntity = require '../entities/ComplexMaterialEntity'
 ProducerEntity = require '../entities/ProducerEntity'
+EdgeEntity = require '../entities/EdgeEntity'
 flow = require './flow'
 shuffle = require './shuffleArray'
 variables = require('./variableHolder').Map
+Simple1DNoise = require './Simple1DNoise'
 
 class Map
   # Privates
@@ -17,12 +19,42 @@ class Map
   _counts: {Base:0, Empty:0, RawMaterial:0, Roaming:0, ComplexMaterial:0, Producer:0}
 
   #publics
-  constructor: (@width, @height) ->
-    @flow = flow.opposite_spirals(@width, @height, @)
+  constructor: (@width, @height, flow_type) ->
+    @flow = flow[flow_type](@width, @height, @)
     @_image = new Uint8Array(@width * @height * 4)
     @assignEntityToIndex(i, new EmptyEntity(), true) for i in [0 .. @width*@height - 1]
+    @makeBorder()
 
     @_addProducer() for [0 .. 8]
+
+  makeBorder: ->
+    x_multiplier = Math.round(@width * .03)
+    y_multiplier = Math.round(@height * .03)
+    noise = Simple1DNoise();
+    noise.setScale(.09)
+    i = 0
+
+    for x in [0 ... @width]
+      out = Math.ceil(noise.getVal(x) * y_multiplier)
+      for i in [0 ... out]
+        @assignEntityToIndex(@_pointToIndex(x, i-1), new EdgeEntity(), true)
+
+    for y in [0 ... @height]
+      out = Math.ceil(noise.getVal(y) * x_multiplier)
+      for i in [0 ... out]
+        @assignEntityToIndex(@_pointToIndex(i-1, y), new EdgeEntity(), true)
+
+    for x in [0 ... @width]
+      out = Math.ceil(noise.getVal(x) * y_multiplier)
+      for i in [@height ... @height - out]
+        @assignEntityToIndex(@_pointToIndex(x, i-1), new EdgeEntity(), true)
+
+    for y in [0 ... @height]
+      out = Math.ceil(noise.getVal(y) * x_multiplier)
+      for i in [@width ... @width - out]
+        @assignEntityToIndex(@_pointToIndex(i-1, y), new EdgeEntity(), true)
+
+
 
   setFlowType: (type) ->
     @flow = flow[type](@width, @height)

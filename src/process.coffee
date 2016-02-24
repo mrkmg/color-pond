@@ -1,29 +1,25 @@
 Map = require './lib/map'
 FPS = require('./lib/fps')
-
-
 variables = require './lib/variableHolder'
 
 target_tps = 40
 
 map = null
 running = false
-did_set_seed = false;
 map_tick_int = -1;
 fps = FPS()
-
 
 tick = ->
   map.tick()
   fps.tick()
   null
 
-init = (width, height, seed) ->
-  Math.random = require('seedrandom').alea(seed)
-  map = new Map width, height
+init = (width, height, seed, flow) ->
+  Math.random = require('seedrandom/lib/alea')(seed)
+  map = new Map width, height, flow
   self.postMessage ['initialized']
 
-start = (seed) ->
+start = () ->
   running = true
   fps = FPS()
   self.postMessage ['started']
@@ -54,7 +50,7 @@ setFlowType = (type) ->
 
 self.onmessage = (e) ->
   switch e.data[0]
-    when 'init'           then init(e.data[1], e.data[2], e.data[3])
+    when 'init'           then init(e.data[1], e.data[2], e.data[3], e.data[4])
     when 'start'          then start()
     when 'stop'           then stop()
     when 'sendImageData'  then sendImageData()

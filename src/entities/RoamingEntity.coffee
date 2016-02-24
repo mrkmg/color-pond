@@ -79,7 +79,7 @@ class RoamingEntity extends LivingEntity
 
     entity = @map.getEntityAtDirection(@map_index, direction);
 
-    if entity
+    if entity and entity.name isnt 'Edge'
       @map.swapEntities @map_index, entity.map_index
       @stuck_count = 0
     else
