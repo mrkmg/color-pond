@@ -1,5 +1,12 @@
-Number.prototype.mod = (n) -> ((this%n)+n)%n
+###
+  color-pond
+  Kevin Gravier 2016
+  GPL-3.0 License
 
+  Contains a set of different flow calculators.
+###
+
+Number.prototype.mod = (n) -> ((this%n)+n)%n
 
 module.exports.dual_spirals = (width, height, map) ->
   center_x = Math.floor width/2

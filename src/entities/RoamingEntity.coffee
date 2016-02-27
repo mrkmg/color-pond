@@ -1,3 +1,11 @@
+###
+  color-pond
+  Kevin Gravier 2016
+  GPL-3.0 License
+
+  The RoamingEntity is an entity which will hunt out ComplexMaterial and turn it back into RawMaterial
+###
+
 LivingEntity = require './LivingEntity'
 EmptyEntity = require './EmptyEntity'
 shuffle = require '../lib/shuffleArray'

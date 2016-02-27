@@ -1,3 +1,11 @@
+###
+  color-pond
+  Kevin Gravier 2016
+  GPL-3.0 License
+
+  The LivingEntity is a base entity which kills an entity and adjusts the transparency based on health
+###
+
 BaseEntity = require './BaseEntity'
 EmptyEntity = require './EmptyEntity'
 

@@ -1,3 +1,12 @@
+###
+  color-pond
+  Kevin Gravier 2016
+  GPL-3.0 License
+
+  The Map is the heart of the application, and hold all the entities in the map and handles issuing the ticks
+  to each entity. It also hold the image data for the map and keeps the goal ratios up to date.
+###
+
 EmptyEntity = require '../entities/EmptyEntity'
 RoamingEntity = require '../entities/RoamingEntity'
 RawMaterialEntity = require '../entities/RawMaterialEntity'

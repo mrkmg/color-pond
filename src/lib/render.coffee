@@ -1,3 +1,11 @@
+###
+  color-pond
+  Kevin Gravier 2016
+  GPL-3.0 License
+
+  Simple renderer. More to come here in time
+###
+
 canvas = document.getElementById 'main'
 canvas.style.backgroundColor = 'rgba(0, 0, 0, 255)'
 

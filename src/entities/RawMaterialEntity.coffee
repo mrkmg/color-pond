@@ -1,3 +1,11 @@
+###
+  color-pond
+  Kevin Gravier 2016
+  GPL-3.0 License
+
+  The RawMaterialEntity is just a blue flowing entity
+###
+
 FlowingEntity = require './FlowingEntity'
 
 class RawMaterialEntity extends FlowingEntity

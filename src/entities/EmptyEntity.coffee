@@ -1,3 +1,11 @@
+###
+  color-pond
+  Kevin Gravier 2016
+  GPL-3.0 License
+
+  The EmptyEntity is the placeholder for empty spots
+###
+
 BaseEntity = require './BaseEntity'
 
 minBrightness = 0

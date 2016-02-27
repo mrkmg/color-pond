@@ -1,3 +1,12 @@
+###
+  color-pond
+  Kevin Gravier 2016
+  GPL-3.0 License
+
+  The ProducerEntity is an entity which consumes RawMaterial, shares health with other friendly
+  Producers, and when dies turn into a ComplexMaterial
+###
+
 LivingEntity = require './LivingEntity'
 EmptyEntity = require './EmptyEntity'
 ComplexMaterialEntity = require './ComplexMaterialEntity'

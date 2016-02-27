@@ -1,3 +1,11 @@
+###
+  color-pond
+  Kevin Gravier 2016
+  GPL-3.0 License
+
+  The FlowingEntity is a base entity to give an entity the ability to flow with the map's current
+###
+
 BaseEntity = require './BaseEntity'
 
 directions = ['right', 'down', 'left', 'up']

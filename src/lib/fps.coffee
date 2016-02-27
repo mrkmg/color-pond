@@ -1,3 +1,11 @@
+###
+  color-pond
+  Kevin Gravier 2016
+  GPL-3.0 License
+
+  Simple object to keep track of FPS
+###
+
 module.exports = ->
   filter_strength = 20
   frame_time = 0

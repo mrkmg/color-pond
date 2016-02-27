@@ -1,3 +1,11 @@
+###
+  color-pond
+  Kevin Gravier 2016
+  GPL-3.0 License
+
+  The ComplexMaterialEntity is just a red flowing entity
+###
+
 FlowingEntity = require './FlowingEntity'
 
 class ComplexMaterialEntity extends FlowingEntity

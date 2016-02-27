@@ -1,5 +1,10 @@
 ###
-  Color Pond
+  color-pond
+  Kevin Gravier 2016
+  GPL-3.0 License
+
+  Does everything needed in the main browser thread, including starting the webworker. Need to move a lot
+  of this logic to separate files
 ###
 
 fps_target = 20

@@ -1,3 +1,11 @@
+###
+  color-pond
+  Kevin Gravier 2016
+  GPL-3.0 License
+
+  Calculates the width and height that gives approximately the total area at the ratio of the screen size
+###
+
 module.exports = ->
   ideal = 40000
   screenX = window.innerWidth

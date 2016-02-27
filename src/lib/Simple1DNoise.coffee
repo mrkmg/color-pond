@@ -1,4 +1,13 @@
-# Retrieved from http://www.michaelbromley.co.uk/api/90/simple-1d-noise-in-javascript
+###
+  color-pond
+  Kevin Gravier 2016
+  GPL-3.0 License
+
+  Predictable 1d noise maker
+
+  Retrieved from http://www.michaelbromley.co.uk/api/90/simple-1d-noise-in-javascript
+###
+
 
 Simple1DNoise = ->
   MAX_VERTICES = 256

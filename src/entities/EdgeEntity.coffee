@@ -1,3 +1,11 @@
+###
+  color-pond
+  Kevin Gravier 2016
+  GPL-3.0 License
+
+  The EdgeEntity is for the edges of the map
+###
+
 BaseEntity = require './BaseEntity'
 
 directions = ['right', 'down', 'left', 'up']
