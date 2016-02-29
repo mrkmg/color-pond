@@ -45,6 +45,6 @@ class BaseEntity
     else
       false
 
-  tick: ->
+  tick: -> true
 
 module.exports = BaseEntity

@@ -25,13 +25,20 @@ class Map
   _tick: 0
 
   _image: null
-  _counts: {Base:0, Empty:0, RawMaterial:0, Roaming:0, ComplexMaterial:0, Producer:0}
+  _counts: {
+    Base: 0,
+    Empty: 0,
+    RawMaterial: 0,
+    Roaming: 0,
+    ComplexMaterial: 0,
+    Producer: 0
+  }
 
-  #publics
+#publics
   constructor: (@width, @height, flow_type) ->
     @flow = flow[flow_type](@width, @height, @)
     @_image = new Uint8Array(@width * @height * 4)
-    @assignEntityToIndex(i, new EmptyEntity(), true) for i in [0 .. @width*@height - 1]
+    @assignEntityToIndex(i, new EmptyEntity(), true) for i in [0 .. @width * @height - 1]
     @makeBorder()
 
     @_addProducer() for [0 .. 8]
@@ -39,29 +46,52 @@ class Map
   makeBorder: ->
     x_multiplier = Math.round(@width * .03)
     y_multiplier = Math.round(@height * .03)
+    x_center = Math.round(@width / 2);
+    y_center = Math.round(@height / 2);
     noise = Simple1DNoise();
-    noise.setScale(.09)
+    noise.setScale(.08)
+    noise.setAmplitude(2)
     i = 0
 
     for x in [0 ... @width]
       out = Math.ceil(noise.getVal(x) * y_multiplier)
+      out += (Math.abs(x_center - x) / x_center) * (y_center / 8)
       for i in [0 ... out]
-        @assignEntityToIndex(@_pointToIndex(x, i-1), new EdgeEntity(), true)
+        type = out - i < 5
+        index = @_pointToIndex(x, i - 1)
+        if type and @getEntityAtIndex(index).name is 'Edge'
+          continue
+        @assignEntityToIndex(index, new EdgeEntity(type), true)
 
     for y in [0 ... @height]
       out = Math.ceil(noise.getVal(y) * x_multiplier)
+      out += (Math.abs(y_center - y) / y_center) * (x_center / 8)
       for i in [0 ... out]
-        @assignEntityToIndex(@_pointToIndex(i-1, y), new EdgeEntity(), true)
+        type = out - i < 5
+        index = @_pointToIndex(i - 1, y)
+        if type and @getEntityAtIndex(index).name is 'Edge'
+          continue
+        @assignEntityToIndex(index, new EdgeEntity(type), true)
 
     for x in [0 ... @width]
       out = Math.ceil(noise.getVal(x) * y_multiplier)
+      out += (Math.abs(x_center - x) / x_center) * (y_center / 8)
       for i in [@height ... @height - out]
-        @assignEntityToIndex(@_pointToIndex(x, i-1), new EdgeEntity(), true)
+        type = i - @height + out < 5
+        index = @_pointToIndex(x, i - 1)
+        if type and @getEntityAtIndex(index).name is 'Edge'
+          continue
+        @assignEntityToIndex(index, new EdgeEntity(type), true)
 
     for y in [0 ... @height]
       out = Math.ceil(noise.getVal(y) * x_multiplier)
+      out += (Math.abs(y_center - y) / y_center) * (x_center / 8)
       for i in [@width ... @width - out]
-        @assignEntityToIndex(@_pointToIndex(i-1, y), new EdgeEntity(), true)
+        type = i - @width + out < 5
+        index = @_pointToIndex(i - 1, y)
+        if type and @getEntityAtIndex(index).name is 'Edge'
+          continue
+        @assignEntityToIndex(index, new EdgeEntity(type), true)
 
 
 
@@ -72,9 +102,9 @@ class Map
     needed_material = @_getNeededMaterialCount()
     if needed_material > 0
       @_addMaterial() for [0 .. needed_material]
-    if Math.random()*10000 < variables.chance_roamer_spawn
+    if Math.random() * 10000 < variables.chance_roamer_spawn
       @_addRoamer()
-    if Math.random()*10000 < variables.chance_producer_spawn
+    if Math.random() * 10000 < variables.chance_producer_spawn
       @_addProducer()
     entity.tick() for entity in shuffle(@_map.slice())
     @_tick++
@@ -89,7 +119,7 @@ class Map
     if @_map[index]? then @_map[index] else false
 
   getEntitiesInRange: (index_min, index_max) ->
-    @_map.slice(index_min, index_max+1)
+    @_map.slice(index_min, index_max + 1)
 
   swapEntities: (index1, index2) ->
     ent1 = @getEntityAtIndex index1
@@ -135,12 +165,12 @@ class Map
       entity.moved(index)
     true
 
-  #privates
+#privates
   _pointToIndex: (x, y) -> x + @width * y
   _indexToPoint: (index) -> [index % @width, Math.floor(index / @width)]
   _addEntityToEmpty: (type) ->
     loop
-      i = Math.floor(Math.random() * (@_map.length-1))
+      i = Math.floor(Math.random() * (@_map.length - 1))
       break if @getEntityAtIndex(i)?.name is 'Empty'
     @assignEntityToIndex(i, new type(), true)
 
@@ -159,7 +189,7 @@ class Map
   _addProducer: ->
     @_addEntityToEmpty(ProducerEntity)
 
-  #debugs
+#debugs
   $$dumpMap: ->
     console.debug @_map
 

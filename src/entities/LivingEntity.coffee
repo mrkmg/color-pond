@@ -17,7 +17,7 @@ class LivingEntity extends BaseEntity
   died: ->
 
   tick: ->
-    super() and (
+    if super()
       if @health <= 0
         @map.assignEntityToIndex(@map_index, new EmptyEntity(), true)
         @died()
@@ -25,6 +25,7 @@ class LivingEntity extends BaseEntity
       else
         @setColor(@color[0], @color[1], @color[2], Math.min(255, 20 + Math.round((@health / @max_health)*235)))
         true
-    )
+    else
+      false
 
 module.exports = LivingEntity
