@@ -12,11 +12,9 @@ RoamingEntity = require '../entities/RoamingEntity'
 RawMaterialEntity = require '../entities/RawMaterialEntity'
 ComplexMaterialEntity = require '../entities/ComplexMaterialEntity'
 ProducerEntity = require '../entities/ProducerEntity'
-EdgeEntity = require '../entities/EdgeEntity'
 flow = require './flow'
 shuffle = require './shuffleArray'
 variables = require('./variableHolder').Map
-Simple1DNoise = require './Simple1DNoise'
 
 class Map
   # Privates
@@ -31,69 +29,25 @@ class Map
     RawMaterial: 0,
     Roaming: 0,
     ComplexMaterial: 0,
-    Producer: 0
+    Producer: 0,
+    Edge: 0
   }
 
 #publics
   constructor: (@width, @height, flow_type) ->
+    @width = Math.floor(@width)
+    @height = Math.floor(@height)
+
     @flow = flow[flow_type](@width, @height, @)
-    @_image = new Uint8Array(@width * @height * 4)
-    @assignEntityToIndex(i, new EmptyEntity(), true) for i in [0 .. @width * @height - 1]
+    @_image = new Uint8Array((@width * @height) * 4)
+    @assignEntityToIndex(i, new EmptyEntity(), true) for i in [0 .. (@width * @height) - 1]
     @makeBorder()
 
     @_addProducer() for [0 .. 8]
 
+
   makeBorder: ->
-    x_multiplier = Math.round(@width * .03)
-    y_multiplier = Math.round(@height * .03)
-    x_center = Math.round(@width / 2);
-    y_center = Math.round(@height / 2);
-    noise = Simple1DNoise();
-    noise.setScale(.08)
-    noise.setAmplitude(2)
-    i = 0
-
-    for x in [0 ... @width]
-      out = Math.ceil(noise.getVal(x) * y_multiplier)
-      out += (Math.abs(x_center - x) / x_center) * (y_center / 8)
-      for i in [0 ... out]
-        type = out - i < 5
-        index = @_pointToIndex(x, i - 1)
-        if type and @getEntityAtIndex(index).name is 'Edge'
-          continue
-        @assignEntityToIndex(index, new EdgeEntity(type), true)
-
-    for y in [0 ... @height]
-      out = Math.ceil(noise.getVal(y) * x_multiplier)
-      out += (Math.abs(y_center - y) / y_center) * (x_center / 8)
-      for i in [0 ... out]
-        type = out - i < 5
-        index = @_pointToIndex(i - 1, y)
-        if type and @getEntityAtIndex(index).name is 'Edge'
-          continue
-        @assignEntityToIndex(index, new EdgeEntity(type), true)
-
-    for x in [0 ... @width]
-      out = Math.ceil(noise.getVal(x) * y_multiplier)
-      out += (Math.abs(x_center - x) / x_center) * (y_center / 8)
-      for i in [@height ... @height - out]
-        type = i - @height + out < 5
-        index = @_pointToIndex(x, i - 1)
-        if type and @getEntityAtIndex(index).name is 'Edge'
-          continue
-        @assignEntityToIndex(index, new EdgeEntity(type), true)
-
-    for y in [0 ... @height]
-      out = Math.ceil(noise.getVal(y) * x_multiplier)
-      out += (Math.abs(y_center - y) / y_center) * (x_center / 8)
-      for i in [@width ... @width - out]
-        type = i - @width + out < 5
-        index = @_pointToIndex(i - 1, y)
-        if type and @getEntityAtIndex(index).name is 'Edge'
-          continue
-        @assignEntityToIndex(index, new EdgeEntity(type), true)
-
-
+    require('./border')(@)
 
   setFlowType: (type) ->
     @flow = flow[type](@width, @height)
@@ -106,7 +60,7 @@ class Map
       @_addRoamer()
     if Math.random() * 10000 < variables.chance_producer_spawn
       @_addProducer()
-    entity.tick() for entity in shuffle(@_map.slice())
+    entity.tick() for entity in shuffle(@_map.slice()) #slice to make a copy and leave the original intact
     @_tick++
 
   getRender: ->
@@ -150,20 +104,23 @@ class Map
         else false
 
   assignEntityToIndex: (index, entity, is_new = false) ->
-    current_entity = @getEntityAtIndex(index)
-    if current_entity
-      current_entity.is_deleted = true
-      @_counts[current_entity.name]--
-
-    @_counts[entity.name]++
-
-    @_map[index] = entity
-    entity.is_deleted = false
-    if is_new
-      entity.init @, index
+    if index > @_map.length or index < 0
+      false
     else
-      entity.moved(index)
-    true
+      current_entity = @getEntityAtIndex(index)
+      if current_entity
+        current_entity.is_deleted = true
+        @_counts[current_entity.name]--
+
+      @_counts[entity.name]++
+
+      @_map[index] = entity
+      entity.is_deleted = false
+      if is_new
+        entity.init @, index
+      else
+        entity.moved(index)
+      true
 
 #privates
   _pointToIndex: (x, y) -> x + @width * y
@@ -175,7 +132,7 @@ class Map
     @assignEntityToIndex(i, new type(), true)
 
   _getNeededMaterialCount: ->
-    Math.floor(@_map.length * variables.empty_ratio) - @_counts.ComplexMaterial - @_counts.RawMaterial - @_counts.Producer
+    Math.floor((@_map.length - @_counts.Edge) * variables.empty_ratio) - @_counts.ComplexMaterial - @_counts.RawMaterial - @_counts.Producer
 
   _addMaterial: ->
     @_addEntityToEmpty(RawMaterialEntity)

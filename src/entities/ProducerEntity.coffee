@@ -56,6 +56,10 @@ class ProducerEntity extends LivingEntity
 
     true
 
+  attackEnemies: (entities) ->
+    for entity in entities
+      entity.health -= 10
+
   reproduce: (entities) ->
     (
       @health -= variableHolder.life_loss_to_reproduce
@@ -73,16 +77,21 @@ class ProducerEntity extends LivingEntity
 
       sides = (entity for entity in @getSides() when entity)
 
-      placeable_entities = (entity for entity in sides when entity.name is "Empty")
       friendly_entities = (entity for entity in sides when entity.name is "Producer" and entity.wants is @wants and entity.makes is @makes)
-      consumable_entities = (entity for entity in sides when entity.name is "RawMaterial" and entity.type is @wants)
+      enemy_entities = (entity for entity in sides when entity.name is "Producer" and entity.wants isnt @wants and entity.makes isnt @makes)
 
-      @transferHealth(friendly_entities)
+      if friendly_entities.length
+        @transferHealth(friendly_entities)
+
+      if enemy_entities.length
+        @attackEnemies(enemy_entities)
 
       if @age > variableHolder.age_to_reproduce and Math.pow(friendly_entities.length+1, 2)/16 > Math.random()
+        placeable_entities = (entity for entity in sides when entity.name is "Empty")
         @reproduce(placeable_entities)
 
       if @last_ate > variableHolder.eating_cooldown
+        consumable_entities = (entity for entity in sides when entity.name is "RawMaterial" and entity.type is @wants)
         @eat(consumable_entities)
 
       if friendly_entities.length is 4
@@ -90,7 +99,7 @@ class ProducerEntity extends LivingEntity
         @color[1] = 255
         @health -= 1
       else
-        @health -= 2
+        @health -= 5
         @color[1] = 200
 
       if @age / variableHolder.old_age_death_multiplier > Math.random()

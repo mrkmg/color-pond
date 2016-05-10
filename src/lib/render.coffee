@@ -6,6 +6,7 @@
   Simple renderer. More to come here in time
 ###
 
+holder = document.getElementById 'main_holder'
 canvas = document.getElementById 'main'
 canvas.style.backgroundColor = 'rgba(0, 0, 0, 255)'
 
@@ -14,7 +15,9 @@ context.imageSmoothingEnabled = false;
 
 image_data = null
 
-module.exports.setSize = (x, y) ->
+module.exports.setSize = (width, height, x, y) ->
+  holder.style.width = "#{width}px"
+  holder.style.height = "#{height}px"
   context.canvas.width = x
   context.canvas.height = y
   image_data = context.createImageData x, y

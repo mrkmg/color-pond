@@ -24,16 +24,16 @@ options = document.getElementById('options')
 
 seed.value = Math.round(Math.random() * 10000000)
 
+width = height = Math.min(window.innerHeight, window.innerWidth)
 
-[x, y] = require('./lib/optimalResolution')()
+[x, y] = require('./lib/optimalResolution')(width, height, 80000)
 
 stats.textContent = "TPS: ?? | FPS: ??"
-render.setSize x, y
+render.setSize width, height, x, y
 
 did_init = false
 
-optionManager = new OptionManager((type, variable, value) -> worker.postMessage ['updateVariable', type, variable,
-  value])
+optionManager = new OptionManager((type, variable, value) -> worker.postMessage ['updateVariable', type, variable, value])
 
 worker.postMessage ['getVariables']
 worker.onmessage = (e) ->

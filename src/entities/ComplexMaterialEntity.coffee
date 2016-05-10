@@ -3,7 +3,7 @@
   Kevin Gravier 2016
   GPL-3.0 License
 
-  The ComplexMaterialEntity is just a red flowing entity
+  The ComplexMaterialEntity represents a dead Producer
 ###
 
 FlowingEntity = require './FlowingEntity'

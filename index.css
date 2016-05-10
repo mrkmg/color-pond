@@ -6,7 +6,7 @@
 body,
 html {
   height: 100%;
-  background: #333;
+  background: #649201;
 }
 #left_panel {
   position: fixed;
@@ -27,6 +27,9 @@ html {
 }
 #right_panel.show {
   right: 0;
+}
+#main_holder {
+  margin: 0 auto;
 }
 #main {
   width: 100%;
